@@ -1,6 +1,22 @@
 spring:
   application:
     name: GGbot
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioTranscriptionAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiEmbeddingAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiImageAutoConfiguration
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiModerationAutoConfiguration
+  ai:
+    model:
+      chat: ${SPRING_AI_MODEL_CHAT:openai}
+    openai:
+      base-url: ${SPRING_AI_OPENAI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode}
+      api-key: ${SPRING_AI_OPENAI_API_KEY}
+      chat:
+        options:
+          model: ${SPRING_AI_OPENAI_MODEL}
 
 server:
   port: 8080
@@ -14,8 +30,3 @@ app:
     base-url: https://open.feishu.cn
     token-path: /open-apis/auth/v3/tenant_access_token/internal
     message-path: /open-apis/im/v1/messages
-  llm:
-    enabled: false
-    base-url: ${LLM_BASE_URL:https://api.openai.com/v1}
-    api-key: ${LLM_API_KEY:}
-    model: ${LLM_MODEL:gpt-4o-mini}
