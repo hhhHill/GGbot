@@ -33,7 +33,7 @@ public class SummarizeTool {
 
     public ToolResult execute(String prompt, AgentContext context, Map<String, Object> parameters) {
         String summary = generateReply(prompt);
-        return new ToolResult(ToolName.SUMMARIZE, true, summary, summary);
+        return new ToolResult(ToolName.SUMMARIZE, true, summary, null);
     }
 
     private String generateReply(String prompt) {

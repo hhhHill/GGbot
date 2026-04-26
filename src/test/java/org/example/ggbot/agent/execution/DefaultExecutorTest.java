@@ -1,6 +1,7 @@
 package org.example.ggbot.agent.execution;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -14,6 +15,7 @@ import org.example.ggbot.planner.Plan;
 import org.example.ggbot.planner.PlanStep;
 import org.example.ggbot.planner.StepStatus;
 import org.example.ggbot.tool.SpringAiToolExecutor;
+import org.example.ggbot.tool.ToolResult;
 import org.example.ggbot.tool.ToolName;
 import org.example.ggbot.tool.impl.GenerateDocTool;
 import org.example.ggbot.tool.impl.GeneratePptTool;
@@ -57,5 +59,38 @@ class DefaultExecutorTest {
         assertThat(result.isSuccess()).isTrue();
         assertThat(step.getStatus()).isEqualTo(StepStatus.SUCCESS);
         assertThat(result.getRecords()).hasSize(1);
+    }
+
+    @Test
+    void shouldNotRenderDuplicateObservationWhenArtifactMatchesPlainTextReply() {
+        SpringAiToolExecutor toolExecutor = mock(SpringAiToolExecutor.class);
+        when(toolExecutor.execute(any(), any(), any(), any())).thenReturn(
+                new ToolResult(ToolName.SUMMARIZE, true, "飞书是企业协作平台。", "飞书是企业协作平台。")
+        );
+        DefaultExecutor executor = new DefaultExecutor(toolExecutor);
+
+        AgentState state = AgentState.initialize(
+                "task-1",
+                new AgentRequest(
+                        "conversation-1",
+                        "user-1",
+                        "飞书是什么",
+                        AgentChannel.WEB,
+                        null,
+                        "conversation-1",
+                        Map.of()
+                ),
+                List.of()
+        );
+        Plan plan = new Plan();
+        PlanStep step = new PlanStep("step-1", ToolName.SUMMARIZE, "总结", "飞书是什么");
+        plan.addStep(step);
+        state.setCurrentPlan(plan);
+
+        ExecutionResult result = executor.execute(state, plan);
+
+        assertThat(result.getRecords()).singleElement()
+                .extracting(StepExecutionRecord::getObservation)
+                .isEqualTo("飞书是企业协作平台。");
     }
 }

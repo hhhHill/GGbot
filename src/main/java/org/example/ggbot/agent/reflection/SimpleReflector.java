@@ -41,6 +41,19 @@ public class SimpleReflector implements Reflector {
             );
         }
 
+        if (state.getCurrentPlan() != null && state.getCurrentPlan().allStepsCompleted()) {
+            return new ReflectionAnalysis(
+                    true,
+                    false,
+                    false,
+                    true,
+                    ReflectionType.SUCCESS,
+                    "所有步骤已完成",
+                    result.getSummary(),
+                    "finish"
+            );
+        }
+
         if ((state.getCurrentPlan() == null || !state.getCurrentPlan().hasPendingSteps()) && !state.isDone()) {
             return new ReflectionAnalysis(
                     false,

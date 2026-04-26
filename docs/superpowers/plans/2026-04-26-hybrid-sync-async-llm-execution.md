@@ -1,18 +1,18 @@
-# Hybrid Sync/Async LLM Execution Implementation Plan
+# 混合同步/异步 LLM 执行实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **供代理执行者使用：** 必须使用 `superpowers:subagent-driven-development`（推荐）或 `superpowers:executing-plans`，按任务逐步落实本计划。步骤使用复选框语法（`- [ ]`）追踪进度。
 
-**Goal:** Add unified reliable LLM calling plus hybrid sync/async execution so short requests remain synchronous while long-running model/tool requests return a `jobId`, expose progress, support watchdog timeouts, and allow user retry.
+**目标：** 增加统一可靠的 LLM 调用层和混合同步/异步执行能力，让短请求继续同步返回，让长时间运行的模型/工具请求返回 `jobId`、暴露进度、支持 watchdog 超时处理，并允许用户重试。
 
-**Architecture:** Keep the existing Agent core as the single execution path. Add a reliable model-calling layer for retries/timeouts/fallbacks, then wrap long-running requests in a job system with a decider, worker, watchdog, and polling endpoints. Frontend stays simple: one active request per conversation, loading state for sync calls, polling UI for async calls, and retry on failure.
+**架构：** 保持现有 Agent 内核作为唯一执行主路径。先增加带重试、超时和兜底的可靠模型调用层，再把长请求包裹进任务系统，包括判定器、worker、watchdog 和轮询接口。前端保持简单：每个会话同一时间只处理一个活动请求，同步请求展示加载态，异步请求轮询状态，失败后可重试。
 
-**Tech Stack:** Java 17, Spring Boot 3.4, Spring AI, in-memory job store for first iteration, browser JS frontend, JUnit 5, Mockito, Maven.
+**技术栈：** Java 17、Spring Boot 3.4、Spring AI、首版使用内存任务存储、浏览器原生 JS 前端、JUnit 5、Mockito、Maven。
 
 ---
 
-## File Map
+## 文件映射
 
-**Create:**
+**新增：**
 - `src/main/java/org/example/ggbot/ai/ChatFallbackPolicy.java`
 - `src/main/java/org/example/ggbot/ai/ReliableChatService.java`
 - `src/main/java/org/example/ggbot/job/JobStatus.java`
@@ -32,7 +32,7 @@
 - `src/test/java/org/example/ggbot/job/JobWatchdogTest.java`
 - `src/test/java/org/example/ggbot/adapter/web/WebJobControllerTest.java`
 
-**Modify:**
+**修改：**
 - `src/main/java/org/example/ggbot/ai/SpringAiChatService.java`
 - `src/main/java/org/example/ggbot/tool/impl/SummarizeTool.java`
 - `src/main/java/org/example/ggbot/adapter/web/WebAgentController.java`
@@ -43,15 +43,15 @@
 - `src/main/resources/static/app.css`
 - `src/main/resources/application.yml`
 
-### Task 1: Reliable Chat Service
+### 任务 1：可靠聊天服务
 
-**Files:**
-- Create: `src/test/java/org/example/ggbot/ai/ReliableChatServiceTest.java`
-- Create: `src/main/java/org/example/ggbot/ai/ChatFallbackPolicy.java`
-- Create: `src/main/java/org/example/ggbot/ai/ReliableChatService.java`
-- Modify: `src/main/java/org/example/ggbot/tool/impl/SummarizeTool.java`
+**文件：**
+- 新增：`src/test/java/org/example/ggbot/ai/ReliableChatServiceTest.java`
+- 新增：`src/main/java/org/example/ggbot/ai/ChatFallbackPolicy.java`
+- 新增：`src/main/java/org/example/ggbot/ai/ReliableChatService.java`
+- 修改：`src/main/java/org/example/ggbot/tool/impl/SummarizeTool.java`
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **步骤 1：先写失败测试**
 
 ```java
 package org.example.ggbot.ai;
@@ -134,12 +134,12 @@ class ReliableChatServiceTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **步骤 2：运行测试，确认它按预期失败**
 
-Run: `mvn -q -s .mvn/local-settings.xml "-Dtest=ReliableChatServiceTest" test`
-Expected: FAIL with missing `ReliableChatService` / `ChatFallbackPolicy`
+运行：`mvn -q -s .mvn/local-settings.xml "-Dtest=ReliableChatServiceTest" test`  
+预期：由于缺少 `ReliableChatService` / `ChatFallbackPolicy` 而 `FAIL`
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **步骤 3：写最小实现**
 
 ```java
 package org.example.ggbot.ai;
@@ -211,7 +211,7 @@ public class ReliableChatService {
 }
 ```
 
-- [ ] **Step 4: Wire `SummarizeTool` to use the reliable service**
+- [ ] **步骤 4：让 `SummarizeTool` 接入可靠聊天服务**
 
 ```java
 private final ReliableChatService chatService;
@@ -221,28 +221,28 @@ private String generateReply(String prompt) {
 }
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [ ] **步骤 5：运行测试，确认通过**
 
-Run: `mvn -q -s .mvn/local-settings.xml "-Dtest=ReliableChatServiceTest" test`
-Expected: PASS
+运行：`mvn -q -s .mvn/local-settings.xml "-Dtest=ReliableChatServiceTest" test`  
+预期：`PASS`
 
-- [ ] **Step 6: Commit**
+- [ ] **步骤 6：提交**
 
 ```bash
 git add src/main/java/org/example/ggbot/ai/ChatFallbackPolicy.java src/main/java/org/example/ggbot/ai/ReliableChatService.java src/main/java/org/example/ggbot/tool/impl/SummarizeTool.java src/test/java/org/example/ggbot/ai/ReliableChatServiceTest.java
 git commit -m "feat: add reliable chat fallback layer"
 ```
 
-### Task 2: Job Model and Store
+### 任务 2：任务模型与存储
 
-**Files:**
-- Create: `src/test/java/org/example/ggbot/job/InMemoryJobServiceTest.java`
-- Create: `src/main/java/org/example/ggbot/job/JobStatus.java`
-- Create: `src/main/java/org/example/ggbot/job/JobRecord.java`
-- Create: `src/main/java/org/example/ggbot/job/JobService.java`
-- Create: `src/main/java/org/example/ggbot/job/InMemoryJobService.java`
+**文件：**
+- 新增：`src/test/java/org/example/ggbot/job/InMemoryJobServiceTest.java`
+- 新增：`src/main/java/org/example/ggbot/job/JobStatus.java`
+- 新增：`src/main/java/org/example/ggbot/job/JobRecord.java`
+- 新增：`src/main/java/org/example/ggbot/job/JobService.java`
+- 新增：`src/main/java/org/example/ggbot/job/InMemoryJobService.java`
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **步骤 1：先写失败测试**
 
 ```java
 package org.example.ggbot.job;
@@ -279,12 +279,12 @@ class InMemoryJobServiceTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **步骤 2：运行测试，确认它按预期失败**
 
-Run: `mvn -q -s .mvn/local-settings.xml "-Dtest=InMemoryJobServiceTest" test`
-Expected: FAIL with missing job classes
+运行：`mvn -q -s .mvn/local-settings.xml "-Dtest=InMemoryJobServiceTest" test`  
+预期：由于缺少任务相关类而 `FAIL`
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **步骤 3：写最小实现**
 
 ```java
 package org.example.ggbot.job;
@@ -406,28 +406,28 @@ public class InMemoryJobService implements JobService {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **步骤 4：运行测试，确认通过**
 
-Run: `mvn -q -s .mvn/local-settings.xml "-Dtest=InMemoryJobServiceTest" test`
-Expected: PASS
+运行：`mvn -q -s .mvn/local-settings.xml "-Dtest=InMemoryJobServiceTest" test`  
+预期：`PASS`
 
-- [ ] **Step 5: Commit**
+- [ ] **步骤 5：提交**
 
 ```bash
 git add src/main/java/org/example/ggbot/job src/test/java/org/example/ggbot/job/InMemoryJobServiceTest.java
 git commit -m "feat: add in-memory async job store"
 ```
 
-### Task 3: Async Decider and Job Worker
+### 任务 3：异步判定器与任务 Worker
 
-**Files:**
-- Create: `src/test/java/org/example/ggbot/job/AsyncExecutionDeciderTest.java`
-- Create: `src/test/java/org/example/ggbot/job/JobWorkerTest.java`
-- Create: `src/main/java/org/example/ggbot/job/AsyncExecutionMode.java`
-- Create: `src/main/java/org/example/ggbot/job/AsyncExecutionDecider.java`
-- Create: `src/main/java/org/example/ggbot/job/JobWorker.java`
+**文件：**
+- 新增：`src/test/java/org/example/ggbot/job/AsyncExecutionDeciderTest.java`
+- 新增：`src/test/java/org/example/ggbot/job/JobWorkerTest.java`
+- 新增：`src/main/java/org/example/ggbot/job/AsyncExecutionMode.java`
+- 新增：`src/main/java/org/example/ggbot/job/AsyncExecutionDecider.java`
+- 新增：`src/main/java/org/example/ggbot/job/JobWorker.java`
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **步骤 1：先写失败测试**
 
 ```java
 package org.example.ggbot.job;
@@ -494,12 +494,12 @@ class JobWorkerTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **步骤 2：运行测试，确认它按预期失败**
 
-Run: `mvn -q -s .mvn/local-settings.xml "-Dtest=AsyncExecutionDeciderTest,JobWorkerTest" test`
-Expected: FAIL with missing decider / worker classes
+运行：`mvn -q -s .mvn/local-settings.xml "-Dtest=AsyncExecutionDeciderTest,JobWorkerTest" test`  
+预期：由于缺少判定器 / worker 类而 `FAIL`
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **步骤 3：写最小实现**
 
 ```java
 package org.example.ggbot.job;
@@ -558,29 +558,29 @@ public class JobWorker {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **步骤 4：运行测试，确认通过**
 
-Run: `mvn -q -s .mvn/local-settings.xml "-Dtest=AsyncExecutionDeciderTest,JobWorkerTest" test`
-Expected: PASS
+运行：`mvn -q -s .mvn/local-settings.xml "-Dtest=AsyncExecutionDeciderTest,JobWorkerTest" test`  
+预期：`PASS`
 
-- [ ] **Step 5: Commit**
+- [ ] **步骤 5：提交**
 
 ```bash
 git add src/main/java/org/example/ggbot/job/AsyncExecutionMode.java src/main/java/org/example/ggbot/job/AsyncExecutionDecider.java src/main/java/org/example/ggbot/job/JobWorker.java src/test/java/org/example/ggbot/job/AsyncExecutionDeciderTest.java src/test/java/org/example/ggbot/job/JobWorkerTest.java
 git commit -m "feat: add async execution decider and job worker"
 ```
 
-### Task 4: Watchdog and Web Job Endpoints
+### 任务 4：Watchdog 与 Web 任务接口
 
-**Files:**
-- Create: `src/test/java/org/example/ggbot/job/JobWatchdogTest.java`
-- Create: `src/test/java/org/example/ggbot/adapter/web/WebJobControllerTest.java`
-- Create: `src/main/java/org/example/ggbot/job/JobWatchdog.java`
-- Create: `src/main/java/org/example/ggbot/adapter/web/dto/WebChatAcceptedResponse.java`
-- Create: `src/main/java/org/example/ggbot/adapter/web/dto/WebJobStatusResponse.java`
-- Modify: `src/main/java/org/example/ggbot/adapter/web/WebAgentController.java`
+**文件：**
+- 新增：`src/test/java/org/example/ggbot/job/JobWatchdogTest.java`
+- 新增：`src/test/java/org/example/ggbot/adapter/web/WebJobControllerTest.java`
+- 新增：`src/main/java/org/example/ggbot/job/JobWatchdog.java`
+- 新增：`src/main/java/org/example/ggbot/adapter/web/dto/WebChatAcceptedResponse.java`
+- 新增：`src/main/java/org/example/ggbot/adapter/web/dto/WebJobStatusResponse.java`
+- 修改：`src/main/java/org/example/ggbot/adapter/web/WebAgentController.java`
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **步骤 1：先写失败测试**
 
 ```java
 package org.example.ggbot.job;
@@ -607,12 +607,12 @@ class JobWatchdogTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **步骤 2：运行测试，确认它按预期失败**
 
-Run: `mvn -q -s .mvn/local-settings.xml "-Dtest=JobWatchdogTest" test`
-Expected: FAIL with missing watchdog class
+运行：`mvn -q -s .mvn/local-settings.xml "-Dtest=JobWatchdogTest" test`  
+预期：由于缺少 watchdog 类而 `FAIL`
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **步骤 3：写最小实现**
 
 ```java
 package org.example.ggbot.job;
@@ -645,7 +645,7 @@ public class JobWatchdog {
 }
 ```
 
-- [ ] **Step 4: Add snapshot support to `InMemoryJobService`**
+- [ ] **步骤 4：给 `InMemoryJobService` 增加快照能力**
 
 ```java
 public Collection<JobRecord> snapshot() {
@@ -653,7 +653,7 @@ public Collection<JobRecord> snapshot() {
 }
 ```
 
-- [ ] **Step 5: Add accepted/status DTOs and endpoints**
+- [ ] **步骤 5：增加 accepted/status DTO 和接口**
 
 ```java
 public record WebChatAcceptedResponse(boolean accepted, String jobId, String status) {}
@@ -663,26 +663,26 @@ public record WebChatAcceptedResponse(boolean accepted, String jobId, String sta
 public record WebJobStatusResponse(String jobId, String status, String progressMessage, boolean canRetry, String replyText, String fallbackReply) {}
 ```
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [ ] **步骤 6：运行测试，确认通过**
 
-Run: `mvn -q -s .mvn/local-settings.xml "-Dtest=JobWatchdogTest,WebJobControllerTest" test`
-Expected: PASS
+运行：`mvn -q -s .mvn/local-settings.xml "-Dtest=JobWatchdogTest,WebJobControllerTest" test`  
+预期：`PASS`
 
-- [ ] **Step 7: Commit**
+- [ ] **步骤 7：提交**
 
 ```bash
 git add src/main/java/org/example/ggbot/job/JobWatchdog.java src/main/java/org/example/ggbot/adapter/web src/test/java/org/example/ggbot/job/JobWatchdogTest.java src/test/java/org/example/ggbot/adapter/web/WebJobControllerTest.java
 git commit -m "feat: add job polling and watchdog endpoints"
 ```
 
-### Task 5: Frontend Busy State and Retry UX
+### 任务 5：前端忙碌态与重试交互
 
-**Files:**
-- Modify: `src/main/resources/static/index.html`
-- Modify: `src/main/resources/static/app.js`
-- Modify: `src/main/resources/static/app.css`
+**文件：**
+- 修改：`src/main/resources/static/index.html`
+- 修改：`src/main/resources/static/app.js`
+- 修改：`src/main/resources/static/app.css`
 
-- [ ] **Step 1: Write the manual acceptance checklist**
+- [ ] **步骤 1：写手工验收清单**
 
 ```text
 1. 同步短请求发送后按钮变成圈圈且不可点击
@@ -693,7 +693,7 @@ git commit -m "feat: add job polling and watchdog endpoints"
 6. 失败时显示错误提示和“重传请求”按钮
 ```
 
-- [ ] **Step 2: Add loading and retry hooks in `index.html`**
+- [ ] **步骤 2：在 `index.html` 中增加加载态与重试挂点**
 
 ```html
 <button id="send-button" type="submit">
@@ -702,7 +702,7 @@ git commit -m "feat: add job polling and watchdog endpoints"
 </button>
 ```
 
-- [ ] **Step 3: Add minimal CSS**
+- [ ] **步骤 3：增加最小 CSS**
 
 ```css
 .spinner {
@@ -724,7 +724,7 @@ git commit -m "feat: add job polling and watchdog endpoints"
 }
 ```
 
-- [ ] **Step 4: Add polling and retry flow in `app.js`**
+- [ ] **步骤 4：在 `app.js` 中增加轮询与重试流程**
 
 ```javascript
 let activeJobId = null;
@@ -738,21 +738,20 @@ function setBusyState(isBusy, label = "发送请求") {
 }
 ```
 
-- [ ] **Step 5: Run manual verification**
+- [ ] **步骤 5：执行手工验证**
 
-Run: `mvn -q -s .mvn/local-settings.xml test`
-Expected: PASS, then start app and verify checklist items in browser
+运行：`mvn -q -s .mvn/local-settings.xml test`  
+预期：`PASS`，然后启动应用并在浏览器中逐项验证上面的清单
 
-- [ ] **Step 6: Commit**
+- [ ] **步骤 6：提交**
 
 ```bash
 git add src/main/resources/static/index.html src/main/resources/static/app.js src/main/resources/static/app.css
 git commit -m "feat: add frontend loading state and job retry flow"
 ```
 
-## Self-Review
+## 自检
 
-- Spec coverage: reliable model fallback, hybrid sync/async dispatch, job status polling, watchdog timeout, retry flow, and frontend UX are all covered by Tasks 1-5.
-- Placeholder scan: no `TODO` / `TBD` placeholders remain; steps include exact files and commands.
-- Type consistency: shared names are consistent across tasks: `JobStatus`, `JobRecord`, `JobService`, `AsyncExecutionDecider`, `JobWorker`, `ReliableChatService`.
-
+- 规格覆盖：可靠模型兜底、混合同步/异步分发、任务状态轮询、watchdog 超时、重试流程和前端体验，均已由任务 1 到 5 覆盖。
+- 占位符检查：没有残留 `TODO` / `TBD` 占位内容；步骤中包含精确的文件和命令。
+- 类型一致性：共享命名保持一致，包括 `JobStatus`、`JobRecord`、`JobService`、`AsyncExecutionDecider`、`JobWorker`、`ReliableChatService`。

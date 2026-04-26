@@ -81,6 +81,9 @@ public class DefaultExecutor implements Executor {
         if (artifact == null) {
             return toolResult.getSummary();
         }
+        if (artifact instanceof String artifactText && artifactText.equals(toolResult.getSummary())) {
+            return toolResult.getSummary();
+        }
         return toolResult.getSummary() + "\n" + artifact;
     }
 }
