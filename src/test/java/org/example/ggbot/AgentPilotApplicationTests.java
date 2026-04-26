@@ -80,15 +80,16 @@ class AgentPilotApplicationTests {
     }
 
     @Test
-    void shouldServeWebMvpHomePage() throws Exception {
+    void shouldServeWebHomePageWithoutMvpBranding() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
                 .andExpect(forwardedUrl("index.html"));
 
         mockMvc.perform(get("/index.html"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("GGbot MVP")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("web-mvp-session")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("GGbot Workspace")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("web-console-session")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("MVP"))))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("/health")));
     }
 }

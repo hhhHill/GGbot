@@ -104,7 +104,7 @@ public class WebAgentController {
 
     private WebChatRequest toWebChatRequest(Map<String, Object> payload) {
         WebChatRequest request = new WebChatRequest();
-        request.setConversationId((String) payload.getOrDefault("conversationId", "web-mvp-session"));
+        request.setConversationId((String) payload.getOrDefault("conversationId", "web-console-session"));
         request.setUserId((String) payload.getOrDefault("userId", "demo-user"));
         request.setMessage((String) payload.getOrDefault("message", ""));
         return request;

@@ -14,6 +14,7 @@ import org.example.ggbot.ai.ReliableChatService;
 import org.example.ggbot.planner.Plan;
 import org.example.ggbot.planner.PlanStep;
 import org.example.ggbot.planner.StepStatus;
+import org.example.ggbot.prompt.ClasspathPromptRepository;
 import org.example.ggbot.tool.SpringAiToolExecutor;
 import org.example.ggbot.tool.ToolResult;
 import org.example.ggbot.tool.ToolName;
@@ -28,12 +29,13 @@ class DefaultExecutorTest {
     @Test
     void shouldExecutePendingStepThroughSpringAiToolExecutor() {
         ReliableChatService chatService = mock(ReliableChatService.class);
+        ClasspathPromptRepository repository = mock(ClasspathPromptRepository.class);
         when(chatService.isAvailable()).thenReturn(false);
         DefaultExecutor executor = new DefaultExecutor(new SpringAiToolExecutor(
                 new GenerateDocTool(),
                 new GeneratePptTool(),
                 new ModifyPptTool(),
-                new SummarizeTool(chatService)
+                new SummarizeTool(chatService, repository)
         ));
 
         AgentState state = AgentState.initialize(

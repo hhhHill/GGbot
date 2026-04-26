@@ -105,7 +105,7 @@ async function sendMessage(message) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                conversationId: conversationIdInput.value || "web-mvp-session",
+                conversationId: conversationIdInput.value || "web-console-session",
                 userId: userIdInput.value || "demo-user",
                 message
             })

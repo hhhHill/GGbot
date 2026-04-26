@@ -3,6 +3,7 @@ package org.example.ggbot.tool.impl;
 import java.util.Map;
 import lombok.Data;
 import org.example.ggbot.ai.ReliableChatService;
+import org.example.ggbot.prompt.ClasspathPromptRepository;
 import org.example.ggbot.tool.ToolName;
 import org.example.ggbot.tool.ToolResult;
 import org.example.ggbot.agent.AgentContext;
@@ -14,16 +15,14 @@ import org.springframework.stereotype.Component;
 @Data
 public class SummarizeTool {
 
-    private static final String CHAT_SYSTEM_PROMPT = """
-            你是 GGbot 的 Web MVP 对话助手。
-            你的回答应当直接、简洁、可执行。
-            如果用户只是普通聊天或提问，请直接回答，不要假装生成文档或 PPT。
-            """;
+    private static final String SYSTEM_PROMPT_NAME = "summarize-system-prompt.txt";
 
     private final ReliableChatService chatService;
+    private final ClasspathPromptRepository promptRepository;
 
-    public SummarizeTool(ReliableChatService chatService) {
+    public SummarizeTool(ReliableChatService chatService, ClasspathPromptRepository promptRepository) {
         this.chatService = chatService;
+        this.promptRepository = promptRepository;
     }
 
     @Tool(name = "summarize", description = "对当前用户需求生成简要总结和建议")
@@ -41,7 +40,7 @@ public class SummarizeTool {
             return templateReply(prompt);
         }
 
-        return chatService.chat(CHAT_SYSTEM_PROMPT, prompt);
+        return chatService.chat(promptRepository.load(SYSTEM_PROMPT_NAME), prompt);
     }
 
     private String templateReply(String prompt) {

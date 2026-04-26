@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GGbot MVP</title>
+    <title>GGbot 工作台</title>
     <link rel="stylesheet" href="/app.css">
 </head>
 <body>
 <div class="page-shell">
     <header class="hero">
         <div>
-            <p class="eyebrow">GGbot MVP</p>
-            <h1>一个现在就能看见、能聊天、能验证主链路的 Agent 控制台</h1>
+            <p class="eyebrow">GGbot Workspace</p>
+            <h1>面向文档、汇报与通用问答的智能工作台</h1>
             <p class="hero-copy">
-                这个页面直接连接当前 Spring Boot 后端。你可以在浏览器里发起 Agent 请求，看到回复、意图判定和产物摘要。
+                在一个页面里完成对话、任务跟踪和结果查看，直接连接当前 Spring Boot Agent 服务。
             </p>
         </div>
         <div class="status-card">
@@ -44,7 +44,7 @@
                 <article class="message agent">
                     <div class="message-role">Agent</div>
                     <div class="message-body">
-                        这里会显示对话内容。先试一条消息，比如“帮我做一个项目方案文档和汇报PPT”。
+                        这里会显示对话内容。可以先输入一个需求，例如“帮我整理一个产品 PRD 文档”。
                     </div>
                 </article>
             </div>
@@ -56,7 +56,7 @@
                     <div class="identity-row">
                         <label>
                             会话 ID
-                            <input id="conversation-id" type="text" value="web-mvp-session">
+                            <input id="conversation-id" type="text" value="web-console-session">
                         </label>
                         <label>
                             用户 ID
@@ -97,9 +97,9 @@
             <div class="capability-box">
                 <p class="card-label">当前能力</p>
                 <ul>
-                    <li>基于规则的规划与重规划</li>
-                    <li>文档、PPT、总结类工具执行</li>
-                    <li>Spring AI 基础设施接入中</li>
+                    <li>对话请求与任务执行统一入口</li>
+                    <li>文档、PPT、总结类结果快速返回</li>
+                    <li>异步任务状态轮询与失败重试</li>
                 </ul>
             </div>
         </aside>

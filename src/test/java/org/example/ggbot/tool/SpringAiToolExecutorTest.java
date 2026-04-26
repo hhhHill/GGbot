@@ -9,6 +9,7 @@ import java.util.Map;
 import org.example.ggbot.agent.AgentChannel;
 import org.example.ggbot.agent.AgentContext;
 import org.example.ggbot.ai.ReliableChatService;
+import org.example.ggbot.prompt.ClasspathPromptRepository;
 import org.example.ggbot.tool.impl.GenerateDocTool;
 import org.example.ggbot.tool.impl.GeneratePptTool;
 import org.example.ggbot.tool.impl.ModifyPptTool;
@@ -21,12 +22,13 @@ class SpringAiToolExecutorTest {
     @Test
     void shouldExecuteGenerateDocToolWithoutCustomRegistry() {
         ReliableChatService chatService = mock(ReliableChatService.class);
+        ClasspathPromptRepository repository = mock(ClasspathPromptRepository.class);
         when(chatService.isAvailable()).thenReturn(false);
         SpringAiToolExecutor executor = new SpringAiToolExecutor(
                 new GenerateDocTool(),
                 new GeneratePptTool(),
                 new ModifyPptTool(),
-                new SummarizeTool(chatService)
+                new SummarizeTool(chatService, repository)
         );
 
         ToolResult result = executor.execute(
