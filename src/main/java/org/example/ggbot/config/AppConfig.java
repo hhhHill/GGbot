@@ -12,6 +12,7 @@ import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.web.client.RestClient;
 
 @Configuration
@@ -38,5 +39,10 @@ public class AppConfig {
     @Bean
     public ObjectMapper objectMapper() {
         return new ObjectMapper();
+    }
+
+    @Bean
+    public java.util.concurrent.Executor jobWorkerExecutor() {
+        return new SimpleAsyncTaskExecutor("job-worker-");
     }
 }

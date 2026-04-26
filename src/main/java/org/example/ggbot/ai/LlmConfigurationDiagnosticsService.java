@@ -51,7 +51,11 @@ public class LlmConfigurationDiagnosticsService {
     }
 
     private String property(String key) {
-        return environment.getProperty(key, "<null>");
+        try {
+            return environment.getProperty(key, "<null>");
+        } catch (IllegalArgumentException ex) {
+            return "<null>";
+        }
     }
 
     private String beanState(Optional<?> bean) {

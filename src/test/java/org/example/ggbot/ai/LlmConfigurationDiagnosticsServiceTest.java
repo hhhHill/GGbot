@@ -56,6 +56,29 @@ class LlmConfigurationDiagnosticsServiceTest {
     }
 
     @Test
+    void shouldTreatUnresolvedPlaceholderAsNullValue() {
+        Environment environment = mock(Environment.class);
+        when(environment.getProperty("spring.ai.openai.base-url", "<null>")).thenReturn("https://example.test");
+        when(environment.getProperty("spring.ai.openai.chat.options.model", "<null>"))
+                .thenThrow(new IllegalArgumentException("Could not resolve placeholder SPRING_AI_OPENAI_MODEL"));
+        when(environment.getProperty("spring.ai.openai.api-key", "<null>")).thenReturn("<null>");
+        when(environment.getProperty("SPRING_AI_OPENAI_BASE_URL", "<null>")).thenReturn("<null>");
+        when(environment.getProperty("SPRING_AI_OPENAI_MODEL", "<null>")).thenReturn("<null>");
+        when(environment.getProperty("SPRING_AI_OPENAI_API_KEY", "<null>")).thenReturn("<null>");
+
+        LlmConfigurationDiagnosticsService service = new LlmConfigurationDiagnosticsService(
+                environment,
+                java.util.Optional.empty(),
+                java.util.Optional.empty(),
+                java.util.Optional.empty()
+        );
+
+        Map<String, String> values = service.resolvedConfiguration();
+
+        assertThat(values.get("spring.ai.openai.chat.options.model")).isEqualTo("<null>");
+    }
+
+    @Test
     void shouldExposeResolvedBeanDiagnostics() {
         Environment environment = mock(Environment.class);
         ChatModel chatModel = mock(ChatModel.class);

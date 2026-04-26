@@ -35,7 +35,23 @@ class AgentPilotApplicationTests {
     }
 
     @Test
-    void shouldHandleWebChatRequest() throws Exception {
+    void shouldHandleSyncWebChatRequest() throws Exception {
+        mockMvc.perform(post("/api/agent/chat")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "conversationId": "web-session-1",
+                                  "userId": "user-1",
+                                  "message": "你好，请总结一下这个需求"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.intentType").value("CHAT"));
+    }
+
+    @Test
+    void shouldAcceptAsyncWebChatRequest() throws Exception {
         mockMvc.perform(post("/api/agent/chat")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -47,7 +63,9 @@ class AgentPilotApplicationTests {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.intentType").value("CREATE_DOC_AND_PPT"));
+                .andExpect(jsonPath("$.data.accepted").value(true))
+                .andExpect(jsonPath("$.data.jobId").exists())
+                .andExpect(jsonPath("$.data.status").value("QUEUED"));
     }
 
     @Test

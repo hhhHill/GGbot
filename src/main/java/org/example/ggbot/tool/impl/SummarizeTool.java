@@ -2,8 +2,7 @@ package org.example.ggbot.tool.impl;
 
 import java.util.Map;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
-import org.example.ggbot.ai.SpringAiChatService;
+import org.example.ggbot.ai.ReliableChatService;
 import org.example.ggbot.tool.ToolName;
 import org.example.ggbot.tool.ToolResult;
 import org.example.ggbot.agent.AgentContext;
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Data
-@RequiredArgsConstructor
 public class SummarizeTool {
 
     private static final String CHAT_SYSTEM_PROMPT = """
@@ -22,11 +20,15 @@ public class SummarizeTool {
             如果用户只是普通聊天或提问，请直接回答，不要假装生成文档或 PPT。
             """;
 
-    private final SpringAiChatService chatService;
+    private final ReliableChatService chatService;
+
+    public SummarizeTool(ReliableChatService chatService) {
+        this.chatService = chatService;
+    }
 
     @Tool(name = "summarize", description = "对当前用户需求生成简要总结和建议")
     public String summarize(@ToolParam(description = "用户当前输入或待总结内容") String prompt) {
-        return templateReply(prompt);
+        return generateReply(prompt);
     }
 
     public ToolResult execute(String prompt, AgentContext context, Map<String, Object> parameters) {
@@ -39,15 +41,7 @@ public class SummarizeTool {
             return templateReply(prompt);
         }
 
-        try {
-            String reply = chatService.chat(CHAT_SYSTEM_PROMPT, prompt);
-            if (reply == null || reply.isBlank()) {
-                return templateReply(prompt);
-            }
-            return reply;
-        } catch (RuntimeException ex) {
-            return templateReply(prompt);
-        }
+        return chatService.chat(CHAT_SYSTEM_PROMPT, prompt);
     }
 
     private String templateReply(String prompt) {
