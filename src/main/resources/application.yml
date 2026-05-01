@@ -3,7 +3,7 @@ spring:
     name: GGbot
   sql:
     init:
-      mode: always
+      mode: embedded
       schema-locations: classpath:schema.sql
   autoconfigure:
     exclude:

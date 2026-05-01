@@ -42,11 +42,30 @@ class AgentPilotApplicationTests {
         assertThat(schema)
                 .contains("create table if not exists organizations")
                 .contains("create table if not exists messages")
-                .contains("constraint fk_conversations_org_subject foreign key (org_id, subject_id) references subjects(org_id, id)")
-                .contains("constraint fk_messages_org_conversation foreign key (org_id, conversation_id) references conversations(org_id, id)")
-                .contains("constraint fk_memory_org_subject foreign key (org_id, subject_id) references subjects(org_id, id)")
+                .contains("nickname varchar(100)")
+                .contains("avatar_url varchar(500)")
+                .contains("extra_info text")
+                .contains("role varchar(50) not null")
+                .contains("message_type varchar(50) not null")
+                .contains("embedding_id varchar(200)")
+                .contains("constraint fk_conversations_subject foreign key (org_id, subject_id) references subjects(org_id, id)")
+                .contains("constraint fk_messages_conversation foreign key (org_id, conversation_id) references conversations(org_id, id)")
+                .contains("constraint fk_memory_subject foreign key (org_id, subject_id) references subjects(org_id, id)")
                 .contains("constraint fk_group_members_org_subject foreign key (org_id, group_subject_id) references subjects(org_id, id)")
+                .contains("create index idx_conversations_org_subject_last")
+                .contains("create index idx_conversations_org_last")
+                .contains("create index idx_messages_org_conversation_created")
+                .contains("create index idx_memory_org_subject")
+                .contains("create index idx_memory_org_type_scope")
+                .doesNotContain("continue-on-error")
+                .doesNotContain("display_name")
+                .doesNotContain("provider_union_id")
                 .doesNotContain("create index if not exists");
+
+        Resource config = resourceLoader.getResource("classpath:application.yml");
+        assertThat(config.getContentAsString(StandardCharsets.UTF_8))
+                .contains("mode: embedded")
+                .doesNotContain("continue-on-error");
     }
 
     @Test
