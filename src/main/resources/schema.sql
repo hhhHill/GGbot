@@ -58,6 +58,7 @@ create table if not exists subjects (
     created_at timestamp not null default current_timestamp,
     updated_at timestamp not null default current_timestamp,
     constraint fk_subjects_org foreign key (org_id) references organizations(id),
+    constraint uk_subjects_org_id unique (org_id, id),
     constraint uk_subjects_org_type_provider_ref unique (org_id, type, provider, ref_id)
 );
 
@@ -72,7 +73,7 @@ create table if not exists group_members (
     created_at timestamp not null default current_timestamp,
     updated_at timestamp not null default current_timestamp,
     constraint fk_group_members_org foreign key (org_id) references organizations(id),
-    constraint fk_group_members_subject foreign key (group_subject_id) references subjects(id),
+    constraint fk_group_members_org_subject foreign key (org_id, group_subject_id) references subjects(org_id, id),
     constraint fk_group_members_user foreign key (user_id) references users(id),
     constraint uk_group_members_subject_user unique (group_subject_id, user_id)
 );
@@ -87,7 +88,8 @@ create table if not exists conversations (
     created_at timestamp not null default current_timestamp,
     updated_at timestamp not null default current_timestamp,
     constraint fk_conversations_org foreign key (org_id) references organizations(id),
-    constraint fk_conversations_subject foreign key (subject_id) references subjects(id)
+    constraint uk_conversations_org_id unique (org_id, id),
+    constraint fk_conversations_org_subject foreign key (org_id, subject_id) references subjects(org_id, id)
 );
 
 create table if not exists messages (
@@ -100,8 +102,8 @@ create table if not exists messages (
     content text not null,
     created_at timestamp not null default current_timestamp,
     constraint fk_messages_org foreign key (org_id) references organizations(id),
-    constraint fk_messages_conversation foreign key (conversation_id) references conversations(id),
-    constraint fk_messages_subject foreign key (subject_id) references subjects(id),
+    constraint fk_messages_org_conversation foreign key (org_id, conversation_id) references conversations(org_id, id),
+    constraint fk_messages_org_subject foreign key (org_id, subject_id) references subjects(org_id, id),
     constraint uk_messages_org_provider_message unique (org_id, provider_message_id)
 );
 
@@ -115,20 +117,20 @@ create table if not exists memory (
     created_at timestamp not null default current_timestamp,
     updated_at timestamp not null default current_timestamp,
     constraint fk_memory_org foreign key (org_id) references organizations(id),
-    constraint fk_memory_subject foreign key (subject_id) references subjects(id)
+    constraint fk_memory_org_subject foreign key (org_id, subject_id) references subjects(org_id, id)
 );
 
-create index if not exists idx_conversations_org_subject_last_message_at
+create index idx_conversations_org_subject_last_message_at
     on conversations (org_id, subject_id, last_message_at);
 
-create index if not exists idx_conversations_org_last_message_at
+create index idx_conversations_org_last_message_at
     on conversations (org_id, last_message_at);
 
-create index if not exists idx_messages_org_conversation_created_at
+create index idx_messages_org_conversation_created_at
     on messages (org_id, conversation_id, created_at);
 
-create index if not exists idx_memory_org_subject
+create index idx_memory_org_subject
     on memory (org_id, subject_id);
 
-create index if not exists idx_memory_org_type_scope
+create index idx_memory_org_type_scope
     on memory (org_id, memory_type, scope);

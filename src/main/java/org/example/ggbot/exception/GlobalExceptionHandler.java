@@ -30,6 +30,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleUnexpected(Exception exception) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(exception.getMessage() == null ? "Internal server error" : exception.getMessage()));
+                .body(ApiResponse.error("Internal server error"));
     }
 }

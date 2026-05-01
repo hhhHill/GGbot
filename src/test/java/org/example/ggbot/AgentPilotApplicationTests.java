@@ -10,12 +10,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import org.example.ggbot.common.ApiResponse;
+import org.example.ggbot.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -32,11 +36,28 @@ class AgentPilotApplicationTests {
     @Test
     void shouldProvideMultitenantSchemaResource() throws IOException {
         Resource resource = resourceLoader.getResource("classpath:schema.sql");
+        String schema = resource.getContentAsString(StandardCharsets.UTF_8);
 
         assertThat(resource.exists()).isTrue();
-        assertThat(resource.getContentAsString(StandardCharsets.UTF_8))
+        assertThat(schema)
                 .contains("create table if not exists organizations")
-                .contains("create table if not exists messages");
+                .contains("create table if not exists messages")
+                .contains("constraint fk_conversations_org_subject foreign key (org_id, subject_id) references subjects(org_id, id)")
+                .contains("constraint fk_messages_org_conversation foreign key (org_id, conversation_id) references conversations(org_id, id)")
+                .contains("constraint fk_memory_org_subject foreign key (org_id, subject_id) references subjects(org_id, id)")
+                .contains("constraint fk_group_members_org_subject foreign key (org_id, group_subject_id) references subjects(org_id, id)")
+                .doesNotContain("create index if not exists");
+    }
+
+    @Test
+    void shouldHideInternalMessagesForUnexpectedExceptions() {
+        GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+        ResponseEntity<ApiResponse<Void>> response = handler.handleUnexpected(new RuntimeException("sensitive details"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Internal server error");
     }
 
     @Test
