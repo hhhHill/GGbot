@@ -1,6 +1,6 @@
 package org.example.ggbot.enums;
 
 public enum MemoryScope {
-    SUBJECT,
-    ORGANIZATION
+    CONVERSATION,
+    GLOBAL
 }
