@@ -1,6 +1,10 @@
 spring:
   application:
     name: GGbot
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
   autoconfigure:
     exclude:
       - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
