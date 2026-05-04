@@ -1,5 +1,6 @@
 package org.example.ggbot.common;
 
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.Data;

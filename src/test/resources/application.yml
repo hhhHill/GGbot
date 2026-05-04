@@ -3,6 +3,9 @@ spring:
     init:
       mode: embedded
       schema-locations: classpath:schema.sql
+  ai:
+    openai:
+      api-key: test-key
   datasource:
     url: jdbc:h2:mem:ggbot;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
     driver-class-name: org.h2.Driver

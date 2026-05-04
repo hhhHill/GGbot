@@ -135,7 +135,6 @@ public class ConversationService {
                 conversation.getTitle()
         );
     }
-
     public List<ConversationEntity> listAccessibleConversations(Long userId, Long orgId) {
         return conversationRepository.findAccessibleConversations(userId, String.valueOf(userId), orgId);
     }
