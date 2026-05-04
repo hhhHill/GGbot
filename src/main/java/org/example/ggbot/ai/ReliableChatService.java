@@ -2,6 +2,8 @@ package org.example.ggbot.ai;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.util.retry.Retry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -61,5 +63,30 @@ public class ReliableChatService {
             log.error("All chat attempts returned blank content; returning fallback reply");
         }
         return fallbackPolicy.fallbackReply();
+    }
+
+    public Flux<String> stream(String prompt) {
+        return stream(null, prompt);
+    }
+
+    public Flux<String> stream(String systemPrompt, String userPrompt) {
+        int maxAttempts = fallbackPolicy.maxAttempts();
+        if (maxAttempts <= 1) {
+            return delegate.stream(systemPrompt, userPrompt)
+                    .onErrorResume(ex -> Flux.just(fallbackPolicy.fallbackReply()));
+        }
+
+        return Flux.defer(() -> delegate.stream(systemPrompt, userPrompt))
+                .retryWhen(Retry.max(Math.max(0, maxAttempts - 1))
+                        .doBeforeRetry(signal -> log.warn(
+                                "Streaming chat attempt {}/{} failed with {}",
+                                signal.totalRetries() + 1,
+                                maxAttempts,
+                                signal.failure().getClass().getSimpleName(),
+                                signal.failure())))
+                .onErrorResume(ex -> {
+                    log.error("All streaming chat attempts failed; returning fallback reply", ex);
+                    return Flux.just(fallbackPolicy.fallbackReply());
+                });
     }
 }

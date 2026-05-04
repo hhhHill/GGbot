@@ -10,6 +10,8 @@ import java.util.Map;
 import org.example.ggbot.agent.AgentChannel;
 import org.example.ggbot.agent.AgentRequest;
 import org.example.ggbot.agent.AgentState;
+import org.example.ggbot.ai.ContextAwareChatService;
+import org.example.ggbot.ai.MemoryManager;
 import org.example.ggbot.ai.ReliableChatService;
 import org.example.ggbot.planner.Plan;
 import org.example.ggbot.planner.PlanStep;
@@ -28,9 +30,10 @@ class DefaultExecutorTest {
 
     @Test
     void shouldExecutePendingStepThroughSpringAiToolExecutor() {
-        ReliableChatService chatService = mock(ReliableChatService.class);
+        ReliableChatService reliableChatService = mock(ReliableChatService.class);
         ClasspathPromptRepository repository = mock(ClasspathPromptRepository.class);
-        when(chatService.isAvailable()).thenReturn(false);
+        ContextAwareChatService chatService = new ContextAwareChatService(reliableChatService, new MemoryManager());
+        when(reliableChatService.isAvailable()).thenReturn(false);
         DefaultExecutor executor = new DefaultExecutor(new SpringAiToolExecutor(
                 new GenerateDocTool(),
                 new GeneratePptTool(),

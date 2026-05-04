@@ -44,3 +44,10 @@ build/
 .env
 .worktrees/
 .mvn-repo/
+
+### Local Runtime Data ###
+mysql/
+redis/
+.merge-backup/
+hs_err_pid*.log
+replay_pid*.log

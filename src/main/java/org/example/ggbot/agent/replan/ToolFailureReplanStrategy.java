@@ -10,6 +10,10 @@ import org.example.ggbot.planner.PlanStep;
 import org.example.ggbot.tool.ToolName;
 import org.springframework.stereotype.Component;
 
+/**
+ * 工具执行失败的重规划策略
+ * 重试失败的步骤，多次失败则降级为总结答复
+ */
 @Component
 @Data
 @RequiredArgsConstructor

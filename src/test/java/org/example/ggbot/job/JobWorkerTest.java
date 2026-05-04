@@ -17,6 +17,7 @@ import org.example.ggbot.ai.ChatFallbackPolicy;
 import org.example.ggbot.common.IdGenerator;
 import org.example.ggbot.common.JsonUtils;
 import org.example.ggbot.planner.IntentType;
+import org.example.ggbot.session.WebSessionService;
 import org.junit.jupiter.api.Test;
 
 class JobWorkerTest {
@@ -25,12 +26,13 @@ class JobWorkerTest {
     void shouldMarkJobSucceededAndPersistResultPayload() {
         AgentService agentService = mock(AgentService.class);
         InMemoryJobService jobService = new InMemoryJobService(new IdGenerator());
+        WebSessionService sessionService = mock(WebSessionService.class);
         JobRecord record = jobService.create("conversation-1", "user-1", "{\"message\":\"导出聊天记录\"}");
         AgentRequest request = request("导出聊天记录");
         when(agentService.handle(same(request))).thenReturn(
                 new AgentResult("task-1", IntentType.CHAT, "最终结果", List.of("artifact-1"))
         );
-        JobWorker worker = new JobWorker(agentService, jobService, new JsonUtils(new ObjectMapper()));
+        JobWorker worker = new JobWorker(agentService, jobService, new JsonUtils(new ObjectMapper()), sessionService);
 
         worker.process(record.getJobId(), request);
 
@@ -46,10 +48,11 @@ class JobWorkerTest {
     void shouldMarkJobFailedAndPersistFallbackReplyWhenAgentThrows() {
         AgentService agentService = mock(AgentService.class);
         InMemoryJobService jobService = new InMemoryJobService(new IdGenerator());
+        WebSessionService sessionService = mock(WebSessionService.class);
         JobRecord record = jobService.create("conversation-1", "user-1", "{\"message\":\"导出聊天记录\"}");
         AgentRequest request = request("导出聊天记录");
         when(agentService.handle(same(request))).thenThrow(new RuntimeException("agent boom"));
-        JobWorker worker = new JobWorker(agentService, jobService, new JsonUtils(new ObjectMapper()));
+        JobWorker worker = new JobWorker(agentService, jobService, new JsonUtils(new ObjectMapper()), sessionService);
 
         worker.process(record.getJobId(), request);
 

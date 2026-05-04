@@ -10,6 +10,10 @@ import org.example.ggbot.planner.PlanStep;
 import org.example.ggbot.tool.ToolName;
 import org.springframework.stereotype.Component;
 
+/**
+ * 计划耗尽重规划策略
+ * 当计划步骤全部执行完但任务仍未完成时，添加补充步骤
+ */
 @Component
 @Data
 @RequiredArgsConstructor

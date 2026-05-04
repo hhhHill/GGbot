@@ -8,6 +8,10 @@ import org.example.ggbot.agent.execution.StepExecutionRecord;
 import org.example.ggbot.tool.ToolResult;
 import org.springframework.stereotype.Component;
 
+/**
+ * 简单反思器实现
+ * 基于规则判断执行结果的质量，不需要调用LLM
+ */
 @Component
 @Data
 @RequiredArgsConstructor

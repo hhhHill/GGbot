@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import org.example.ggbot.agent.AgentChannel;
 import org.example.ggbot.agent.AgentContext;
+import org.example.ggbot.ai.ContextAwareChatService;
+import org.example.ggbot.ai.MemoryManager;
 import org.example.ggbot.ai.ReliableChatService;
 import org.example.ggbot.prompt.ClasspathPromptRepository;
 import org.example.ggbot.tool.impl.GenerateDocTool;
@@ -21,9 +23,10 @@ class SpringAiToolExecutorTest {
 
     @Test
     void shouldExecuteGenerateDocToolWithoutCustomRegistry() {
-        ReliableChatService chatService = mock(ReliableChatService.class);
+        ReliableChatService reliableChatService = mock(ReliableChatService.class);
         ClasspathPromptRepository repository = mock(ClasspathPromptRepository.class);
-        when(chatService.isAvailable()).thenReturn(false);
+        ContextAwareChatService chatService = new ContextAwareChatService(reliableChatService, new MemoryManager());
+        when(reliableChatService.isAvailable()).thenReturn(false);
         SpringAiToolExecutor executor = new SpringAiToolExecutor(
                 new GenerateDocTool(),
                 new GeneratePptTool(),

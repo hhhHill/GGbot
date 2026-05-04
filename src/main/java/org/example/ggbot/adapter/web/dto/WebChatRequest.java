@@ -9,5 +9,7 @@ public class WebChatRequest {
 
     private String conversationId;
     private String userId;
+    private String webUserKey;
+    private Long orgId;
     private String message;
 }

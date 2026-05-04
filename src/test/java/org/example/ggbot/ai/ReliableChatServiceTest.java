@@ -1,6 +1,7 @@
 package org.example.ggbot.ai;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -10,6 +11,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import reactor.core.publisher.Flux;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
@@ -103,5 +105,20 @@ class ReliableChatServiceTest {
         } finally {
             logger.detachAppender(appender);
         }
+    }
+
+    @Test
+    void shouldRetryStreamingContentAfterInitialFailureAndReturnLaterSuccessfulChunks() {
+        SpringAiChatService delegate = mock(SpringAiChatService.class);
+        when(delegate.stream("system", "user"))
+                .thenReturn(Flux.error(new RuntimeException("first failure")))
+                .thenReturn(Flux.just("re", "covered"));
+
+        ReliableChatService service = new ReliableChatService(delegate, ChatFallbackPolicy.createDefault());
+
+        String reply = service.stream("system", "user").collectList().map(parts -> String.join("", parts)).block();
+
+        assertThat(reply).isEqualTo("recovered");
+        verify(delegate, times(2)).stream("system", "user");
     }
 }

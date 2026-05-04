@@ -3,109 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GGbot 工作台</title>
+    <title>GGbot Chat</title>
     <link rel="stylesheet" href="/app.css">
+    <link rel="modulepreload" href="/services/session-api.js">
+    <script type="importmap">
+        {
+            "imports": {
+                "react": "https://esm.sh/react@18",
+                "react-dom/client": "https://esm.sh/react-dom@18/client",
+                "htm": "https://esm.sh/htm@3.1.1"
+            }
+        }
+    </script>
 </head>
 <body>
-<div class="page-shell">
-    <header class="hero">
-        <div>
-            <p class="eyebrow">GGbot Workspace</p>
-            <h1>面向文档、汇报与通用问答的智能工作台</h1>
-            <p class="hero-copy">
-                在一个页面里完成对话、任务跟踪和结果查看，直接连接当前 Spring Boot Agent 服务。
-            </p>
-        </div>
-        <div class="status-card">
-            <p class="card-label">服务状态</p>
-            <div class="status-row">
-                <span id="health-dot" class="status-dot pending"></span>
-                <strong id="health-text">检查中</strong>
-            </div>
-            <p id="health-detail" class="card-muted">页面加载后自动请求 /health</p>
-        </div>
-    </header>
-
-    <main class="main-grid">
-        <section class="panel chat-panel">
-            <div class="panel-header">
-                <div>
-                    <p class="panel-title">聊天控制台</p>
-                    <p class="panel-subtitle">发送请求</p>
-                </div>
-                <div class="example-row">
-                    <button class="ghost-button example-button" data-example="帮我做一个项目方案文档和汇报PPT">方案文档 + PPT</button>
-                    <button class="ghost-button example-button" data-example="帮我整理一个产品 PRD 文档">PRD 文档</button>
-                    <button class="ghost-button example-button" data-example="请总结一下这个需求的关键目标">总结需求</button>
-                </div>
-            </div>
-
-            <div id="chat-feed" class="chat-feed">
-                <article class="message agent">
-                    <div class="message-role">Agent</div>
-                    <div class="message-body">
-                        这里会显示对话内容。可以先输入一个需求，例如“帮我整理一个产品 PRD 文档”。
-                    </div>
-                </article>
-            </div>
-
-            <form id="chat-form" class="composer">
-                <label class="sr-only" for="message-input">输入消息</label>
-                <textarea id="message-input" name="message" rows="4" placeholder="请输入你的需求，例如：帮我做一个项目方案文档和汇报PPT"></textarea>
-                <div class="composer-footer">
-                    <div class="identity-row">
-                        <label>
-                            会话 ID
-                            <input id="conversation-id" type="text" value="web-console-session">
-                        </label>
-                        <label>
-                            用户 ID
-                            <input id="user-id" type="text" value="demo-user">
-                        </label>
-                    </div>
-                    <button id="send-button" type="submit" class="primary-button">
-                        <span class="button-label">发送请求</span>
-                        <span class="spinner hidden" aria-hidden="true"></span>
-                    </button>
-                </div>
-            </form>
-        </section>
-
-        <aside class="panel result-panel">
-            <div class="panel-header">
-                <div>
-                    <p class="panel-title">执行结果</p>
-                    <p class="panel-subtitle">最近一次响应摘要</p>
-                </div>
-            </div>
-
-            <dl class="result-list">
-                <div>
-                    <dt>Task ID</dt>
-                    <dd id="result-task-id">暂无</dd>
-                </div>
-                <div>
-                    <dt>Intent</dt>
-                    <dd id="result-intent">暂无</dd>
-                </div>
-                <div>
-                    <dt>Artifacts</dt>
-                    <dd id="result-artifacts">暂无</dd>
-                </div>
-            </dl>
-
-            <div class="capability-box">
-                <p class="card-label">当前能力</p>
-                <ul>
-                    <li>对话请求与任务执行统一入口</li>
-                    <li>文档、PPT、总结类结果快速返回</li>
-                    <li>异步任务状态轮询与失败重试</li>
-                </ul>
-            </div>
-        </aside>
-    </main>
-</div>
-
-<script src="/app.js"></script>
+<div id="root"></div>
+<script type="module" src="/app.js"></script>
 </body>
 </html>

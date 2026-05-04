@@ -11,6 +11,10 @@ import org.example.ggbot.planner.PlanStep;
 import org.example.ggbot.tool.ToolName;
 import org.springframework.stereotype.Component;
 
+/**
+ * 弱结果重规划策略
+ * 当执行结果为空或质量过弱时，添加补强步骤优化结果
+ */
 @Component
 @Data
 @RequiredArgsConstructor

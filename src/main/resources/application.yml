@@ -1,6 +1,12 @@
 spring:
   application:
     name: GGbot
+  profiles:
+    default: docker
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
   autoconfigure:
     exclude:
       - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
@@ -21,10 +27,14 @@ spring:
 server:
   port: 8080
 
+agent:
+  runner:
+    max-iterations: 10
+
 app:
   feishu:
-    enabled: false
-    mock-send: true
+    enabled: true
+    mock-send: false
     app-id: ${FEISHU_APP_ID:}
     app-secret: ${FEISHU_APP_SECRET:}
     base-url: https://open.feishu.cn

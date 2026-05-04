@@ -3,9 +3,12 @@ package org.example.ggbot.ai;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
+import reactor.core.publisher.Flux;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.client.ChatClient;
 
@@ -39,5 +42,25 @@ class SpringAiChatServiceTest {
 
         assertThat(response).isEqualTo("generated reply");
         assertThat(service.isAvailable()).isTrue();
+    }
+
+    @Test
+    void shouldStreamContentFromChatClientWhenConfigured() {
+        ChatClient chatClient = mock(ChatClient.class);
+        ChatClient.ChatClientRequestSpec requestSpec = mock(ChatClient.ChatClientRequestSpec.class);
+        ChatClient.StreamResponseSpec streamResponseSpec = mock(ChatClient.StreamResponseSpec.class);
+
+        when(chatClient.prompt()).thenReturn(requestSpec);
+        when(requestSpec.system(anyString())).thenReturn(requestSpec);
+        when(requestSpec.user(anyString())).thenReturn(requestSpec);
+        when(requestSpec.stream()).thenReturn(streamResponseSpec);
+        when(streamResponseSpec.content()).thenReturn(Flux.just("hel", "lo"));
+
+        SpringAiChatService service = new SpringAiChatService(Optional.of(chatClient));
+
+        String response = service.stream("system prompt", "user prompt").collectList().map(parts -> String.join("", parts)).block();
+
+        assertThat(response).isEqualTo("hello");
+        verify(chatClient, times(1)).prompt();
     }
 }

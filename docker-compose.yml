@@ -1,0 +1,50 @@
+services:
+  mysql:
+    image: mysql:8.3
+    container_name: ggbot-mysql
+    restart: always
+    ports:
+      - "127.0.0.1:3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ggbot}
+      MYSQL_USER: ${MYSQL_USER:-ggbot}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-ggbot123}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --max_connections=1000
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/conf:/etc/mysql/conf.d
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:8.6.2
+    container_name: ggbot-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-123456}
+      --appendonly yes
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-123456}
+    volumes:
+      - ./redis/data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
+
+networks:
+  default:
+    name: ggbot-network

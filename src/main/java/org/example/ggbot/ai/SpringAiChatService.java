@@ -3,6 +3,7 @@ package org.example.ggbot.ai;
 import java.util.Optional;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Flux;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
@@ -37,5 +38,21 @@ public class SpringAiChatService {
             requestSpec = requestSpec.system(systemPrompt);
         }
         return requestSpec.user(userPrompt).call().content();
+    }
+
+    public Flux<String> stream(String prompt) {
+        return stream(null, prompt);
+    }
+
+    public Flux<String> stream(String systemPrompt, String userPrompt) {
+        if (chatClient.isEmpty()) {
+            return Flux.just("Spring AI chat model is not configured. Prompt: " + userPrompt);
+        }
+
+        ChatClient.ChatClientRequestSpec requestSpec = chatClient.get().prompt();
+        if (systemPrompt != null && !systemPrompt.isBlank()) {
+            requestSpec = requestSpec.system(systemPrompt);
+        }
+        return requestSpec.user(userPrompt).stream().content();
     }
 }

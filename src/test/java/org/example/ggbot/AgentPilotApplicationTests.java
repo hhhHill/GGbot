@@ -35,37 +35,51 @@ class AgentPilotApplicationTests {
     }
 
     @Test
-    void shouldHandleSyncWebChatRequest() throws Exception {
-        mockMvc.perform(post("/api/agent/chat")
+    void shouldCreateAsyncTaskForWebChatRequest() throws Exception {
+        mockMvc.perform(post("/api/chat/send")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "conversationId": "web-session-1",
+                                  "sessionId": "web-session-1",
                                   "userId": "user-1",
                                   "message": "你好，请总结一下这个需求"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.intentType").value("CHAT"));
+                .andExpect(jsonPath("$.data.taskId").exists())
+                .andExpect(jsonPath("$.data.status").value("PENDING"));
     }
 
     @Test
-    void shouldAcceptAsyncWebChatRequest() throws Exception {
-        mockMvc.perform(post("/api/agent/chat")
+    void shouldExposeTaskStatusEndpointForCreatedTask() throws Exception {
+        String response = mockMvc.perform(post("/api/chat/send")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "conversationId": "web-session-1",
+                                  "sessionId": "web-session-1",
                                   "userId": "user-1",
                                   "message": "帮我做一个项目方案文档和汇报PPT"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.accepted").value(true))
-                .andExpect(jsonPath("$.data.jobId").exists())
-                .andExpect(jsonPath("$.data.status").value("QUEUED"));
+                .andExpect(jsonPath("$.data.taskId").exists())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String taskId = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(response)
+                .path("data")
+                .path("taskId")
+                .asText();
+
+        mockMvc.perform(get("/api/tasks/" + taskId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.taskId").value(taskId))
+                .andExpect(jsonPath("$.data.status").exists());
     }
 
     @Test
@@ -85,11 +99,28 @@ class AgentPilotApplicationTests {
                 .andExpect(status().isOk())
                 .andExpect(forwardedUrl("index.html"));
 
+        mockMvc.perform(get("/chat/new"))
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("index.html"));
+
         mockMvc.perform(get("/index.html"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("GGbot Workspace")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("web-console-session")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("GGbot Chat")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("id=\"root\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("react@18")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("/services/session-api.js")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("MVP"))))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("/health")));
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Workspace Note"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Capabilities"))));
+
+        mockMvc.perform(get("/services/local-storage.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("ggbot_chat_sessions")));
+
+        mockMvc.perform(get("/components/QuickActions.js"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("const QUICK_ACTIONS")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("onPick(item.value)")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("quick-action-button")));
     }
 }

@@ -13,7 +13,8 @@ class ClasspathPromptRepositoryTest {
 
         String prompt = repository.load("summarize-system-prompt.txt");
 
-        assertThat(prompt).contains("你是 GGbot 的 Web 对话助手。");
+        assertThat(prompt).contains("你是 GGbot 的 Web 对话助手，负责为用户提供清晰、准确、可执行的回答。");
+        assertThat(prompt).contains("# Memory Awareness（关键新增）");
         assertThat(prompt).doesNotContain("MVP");
     }
 

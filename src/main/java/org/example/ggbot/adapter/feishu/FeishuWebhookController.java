@@ -5,8 +5,10 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.example.ggbot.adapter.feishu.dto.FeishuWebhookRequest;
 import org.example.ggbot.agent.AgentRequest;
-import org.example.ggbot.agent.AgentResult;
-import org.example.ggbot.agent.AgentService;
+import org.example.ggbot.adapter.web.dto.AgentTaskAcceptedResponse;
+import org.example.ggbot.agenttask.AgentTaskCreationResult;
+import org.example.ggbot.agenttask.AgentTaskExecutor;
+import org.example.ggbot.agenttask.AgentTaskService;
 import org.example.ggbot.common.ApiResponse;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,8 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class FeishuWebhookController {
 
     private final FeishuEventParser feishuEventParser;
-    private final AgentService agentService;
-    private final FeishuMessageClient feishuMessageClient;
+    private final AgentTaskService taskService;
+    private final AgentTaskExecutor taskExecutor;
 
     @PostMapping("/webhook")
     public Object webhook(@RequestBody FeishuWebhookRequest request) {
@@ -35,8 +37,15 @@ public class FeishuWebhookController {
         }
 
         AgentRequest agentRequest = feishuEventParser.toAgentRequest(request);
-        AgentResult agentResult = agentService.handle(agentRequest);
-        feishuMessageClient.sendText(agentRequest.getReplyTargetId(), agentResult.getReplyText());
-        return ApiResponse.success(agentResult);
+        String externalEventId = feishuEventParser.externalEventId(request);
+        AgentTaskCreationResult creationResult = taskService.createOrGetByExternalEventId(agentRequest, "feishu", externalEventId);
+        if (creationResult.created()) {
+            taskExecutor.submit(creationResult.task().getTaskId());
+        }
+        return ApiResponse.success(new AgentTaskAcceptedResponse(
+                creationResult.task().getTaskId(),
+                creationResult.task().getSessionId(),
+                creationResult.task().getStatus().name()
+        ));
     }
 }

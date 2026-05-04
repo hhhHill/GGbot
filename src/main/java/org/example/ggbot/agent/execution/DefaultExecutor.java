@@ -12,11 +12,16 @@ import org.example.ggbot.tool.SpringAiToolExecutor;
 import org.example.ggbot.tool.ToolResult;
 import org.springframework.stereotype.Component;
 
+/**
+ * 默认执行器实现
+ * 负责调用工具执行计划中的待处理步骤，每次执行一个步骤
+ */
 @Component
 @Data
 @RequiredArgsConstructor
 public class DefaultExecutor implements Executor {
 
+    /** Spring AI工具执行器，负责调用具体的工具实现 */
     private final SpringAiToolExecutor toolExecutor;
 
     @Override
