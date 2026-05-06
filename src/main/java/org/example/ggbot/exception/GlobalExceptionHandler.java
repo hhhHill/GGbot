@@ -1,5 +1,6 @@
 package org.example.ggbot.exception;
 
+import org.example.ggbot.asr.AsrProviderException;
 import org.example.ggbot.common.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(NotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(exception.getMessage()));
+    }
+
+    @ExceptionHandler(AsrProviderException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAsrProvider(AsrProviderException exception) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(ApiResponse.error(exception.getMessage()));
     }
 
