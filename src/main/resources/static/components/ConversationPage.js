@@ -13,6 +13,11 @@ export function ConversationPage({
     onSend,
     onQuickAction,
     onRetryTask,
+    voiceState,
+    voiceMode,
+    onVoiceModeChange,
+    onVoiceStateChange,
+    onVoiceResult,
     headerProps = {},
     debugPanelCollapsed = false,
     onToggleDebugPanel
@@ -38,6 +43,11 @@ export function ConversationPage({
                 onSend=${onSend}
                 onQuickAction=${onQuickAction}
                 onRetryTask=${onRetryTask}
+                voiceState=${voiceState}
+                voiceMode=${voiceMode}
+                onVoiceModeChange=${onVoiceModeChange}
+                onVoiceStateChange=${onVoiceStateChange}
+                onVoiceResult=${onVoiceResult}
                 quickActionsTone="inline"
                 emptyContent=${html`
                     <section className="empty-state-shell session-shell">

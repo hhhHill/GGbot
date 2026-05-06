@@ -16,7 +16,12 @@ export function ChatArea({
     onQuickAction,
     onRetryTask,
     emptyContent,
-    quickActionsTone = null
+    quickActionsTone = null,
+    voiceState = "idle",
+    voiceMode = "fill",
+    onVoiceModeChange,
+    onVoiceStateChange,
+    onVoiceResult
 }) {
     const messages = session?.messages || [];
     const isEmpty = !loading && messages.length === 0;
@@ -38,6 +43,11 @@ export function ChatArea({
                     onChange=${onDraftChange}
                     onSend=${onSend}
                     quickActions=${quickActionsTone && !isEmpty ? html`<${QuickActions} tone=${quickActionsTone} onPick=${onQuickAction} />` : null}
+                    voiceState=${voiceState}
+                    voiceMode=${voiceMode}
+                    onVoiceModeChange=${onVoiceModeChange}
+                    onVoiceStateChange=${onVoiceStateChange}
+                    onVoiceResult=${onVoiceResult}
                 />
             </div>
         </section>
