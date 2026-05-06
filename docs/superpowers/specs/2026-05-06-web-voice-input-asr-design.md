@@ -111,6 +111,7 @@ Content-Type: multipart/form-data
 要求：
 
 - ASR 默认关闭，未配置时前端仍可正常使用文本聊天
+- 当 ASR 未启用但前端仍调用转写接口时，服务端返回明确错误，不影响应用启动
 - `max-file-size` 和 `allowed-content-types` 由服务端强校验，前端只做辅助提示
 
 **Data Flow**

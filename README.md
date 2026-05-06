@@ -175,6 +175,24 @@ mvn -s .mvn/local-settings.xml spring-boot:run
 - 🤖 飞书：@机器人触发
 - ❤️ 健康检查：<http://localhost:8080/health>
 
+### 5. Web 语音输入
+
+配置以下环境变量后，Web 端输入框会显示语音转写能力：
+
+```env
+ASR_ENABLED=true
+ASR_PROVIDER=openai-compatible
+ASR_BASE_URL=https://your-asr-endpoint
+ASR_API_KEY=your-key
+ASR_MODEL=whisper-1
+```
+
+使用方式：
+
+1. 点击输入框旁的“语音输入”开始录音
+2. 再次点击结束录音并等待转写
+3. 默认会回填输入框，也可以切换到“直发”模式
+
 ***
 
 ## 🏗️ 架构设计

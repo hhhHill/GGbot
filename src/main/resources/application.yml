@@ -44,3 +44,17 @@ app:
     base-url: https://open.feishu.cn
     token-path: /open-apis/auth/v3/tenant_access_token/internal
     message-path: /open-apis/im/v1/messages
+
+asr:
+  enabled: ${ASR_ENABLED:false}
+  provider: ${ASR_PROVIDER:openai-compatible}
+  base-url: ${ASR_BASE_URL:}
+  api-key: ${ASR_API_KEY:}
+  model: ${ASR_MODEL:whisper-1}
+  timeout: ${ASR_TIMEOUT:20s}
+  max-file-size: ${ASR_MAX_FILE_SIZE:5MB}
+  allowed-content-types:
+    - audio/webm
+    - audio/mp4
+    - audio/mpeg
+    - audio/wav

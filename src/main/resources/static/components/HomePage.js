@@ -10,6 +10,11 @@ export function HomePage({
     onDraftChange,
     onSend,
     onQuickAction,
+    voiceState,
+    voiceMode,
+    onVoiceModeChange,
+    onVoiceStateChange,
+    onVoiceResult,
     headerProps = {},
     debugPanelCollapsed = false,
     onToggleDebugPanel
@@ -35,6 +40,11 @@ export function HomePage({
                 onSend=${onSend}
                 onQuickAction=${onQuickAction}
                 onRetryTask=${() => {}}
+                voiceState=${voiceState}
+                voiceMode=${voiceMode}
+                onVoiceModeChange=${onVoiceModeChange}
+                onVoiceStateChange=${onVoiceStateChange}
+                onVoiceResult=${onVoiceResult}
                 quickActionsTone=${null}
                 emptyContent=${html`
                     <section className="empty-state-shell">

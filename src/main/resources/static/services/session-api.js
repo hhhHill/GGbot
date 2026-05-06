@@ -1,4 +1,5 @@
 import { loadClientKey, saveClientKey } from "./local-storage.js";
+export { transcribeAudio } from "./voice-input.js";
 
 function createClientKey() {
     if (window.crypto?.randomUUID) {

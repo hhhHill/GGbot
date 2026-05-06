@@ -168,6 +168,12 @@ function reducer(state, action) {
             };
         case "draft/set":
             return { ...state, draft: action.value };
+        case "voice/state":
+            return { ...state, voiceState: action.value, error: action.error ?? state.error };
+        case "voice/mode":
+            return { ...state, voiceMode: action.value };
+        case "voice/result":
+            return { ...state, voiceState: "idle", draft: action.text, error: "" };
         case "sending":
             return { ...state, sending: action.value };
         case "error":
@@ -190,7 +196,9 @@ function App() {
         loadingSession: false,
         sending: false,
         error: "",
-        draft: cachedState.draft || ""
+        draft: cachedState.draft || "",
+        voiceState: "idle",
+        voiceMode: "fill"
     });
     const [routePath, setRoutePath] = useState(window.location.pathname);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadSidebarCollapsedPreference());
@@ -754,6 +762,10 @@ function App() {
         await loadOrganizations(context.personalOrgId);
     }
 
+    async function handleVoiceTranscriptionResult(mode, text) {
+        await handleVoiceResult(mode, text, dispatch, handleSendMessage);
+    }
+
     const sessionTitle = useMemo(
         () => state.activeSession?.title || findSessionSummary(state.sessions, selectedSessionId)?.title || "新对话",
         [state.activeSession, state.sessions, selectedSessionId]
@@ -791,6 +803,11 @@ function App() {
                 onSend=${handleSendMessage}
                 onQuickAction=${(value) => dispatch({ type: "draft/set", value })}
                 onRetryTask=${handleRetryTask}
+                voiceState=${state.voiceState}
+                voiceMode=${state.voiceMode}
+                onVoiceModeChange=${(value) => dispatch({ type: "voice/mode", value })}
+                onVoiceStateChange=${(value, error = null) => dispatch({ type: "voice/state", value, error })}
+                onVoiceResult=${handleVoiceTranscriptionResult}
                 headerProps=${headerProps}
                 debugPanelCollapsed=${debugPanelCollapsed}
                 onToggleDebugPanel=${() => setDebugPanelCollapsed((value) => !value)}
@@ -804,6 +821,11 @@ function App() {
                 onDraftChange=${(value) => dispatch({ type: "draft/set", value })}
                 onSend=${handleSendMessage}
                 onQuickAction=${(value) => dispatch({ type: "draft/set", value })}
+                voiceState=${state.voiceState}
+                voiceMode=${state.voiceMode}
+                onVoiceModeChange=${(value) => dispatch({ type: "voice/mode", value })}
+                onVoiceStateChange=${(value, error = null) => dispatch({ type: "voice/state", value, error })}
+                onVoiceResult=${handleVoiceTranscriptionResult}
                 headerProps=${headerProps}
                 debugPanelCollapsed=${debugPanelCollapsed}
                 onToggleDebugPanel=${() => setDebugPanelCollapsed((value) => !value)}
@@ -969,6 +991,13 @@ function dedupeMessages(messages) {
         seen.add(key);
         return true;
     });
+}
+
+async function handleVoiceResult(mode, text, dispatch, sendMessage) {
+    dispatch({ type: "voice/result", text });
+    if (mode === "send") {
+        await sendMessage(text);
+    }
 }
 
 createRoot(document.getElementById("root")).render(html`<${App} />`);
