@@ -10,5 +10,7 @@ public class Slide {
 
     private final int pageNumber;
     private final String title;
+    private final String subtitle;
     private final List<String> bullets;
+    private final String speakerNotes;
 }

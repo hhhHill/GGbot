@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.example.ggbot.agent.AgentContext;
+import org.example.ggbot.prompt.ClasspathPromptRepository;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,21 +14,25 @@ public class MemoryManager {
     private static final int RECENT_MESSAGES_LIMIT = RECENT_ROUNDS * 2;
     private static final String USER_PREFIX = "USER: ";
     private static final String ASSISTANT_PREFIX = "ASSISTANT: ";
+    private static final String CURRENT_QUESTION_PROMPT_NAME = "memory-current-question-prompt.txt";
+    private static final String RECENT_HISTORY_PROMPT_NAME = "memory-recent-history-prompt.txt";
+
+    private final ClasspathPromptRepository promptRepository;
+
+    public MemoryManager(ClasspathPromptRepository promptRepository) {
+        this.promptRepository = promptRepository;
+    }
 
     public String buildPrompt(String currentInput, AgentContext context) {
         String normalizedInput = normalizeContent(currentInput);
         List<String> recentMessages = getRecentMessages(context == null ? List.of() : context.getConversationHistory());
         if (recentMessages.isEmpty()) {
-            return """
-                    === 当前问题 ===
-                    USER: %s""".formatted(normalizedInput);
+            return promptRepository.load(CURRENT_QUESTION_PROMPT_NAME, java.util.Map.of("currentInput", normalizedInput));
         }
-        return """
-                === 最近对话 ===
-                %s
-                
-                === 当前问题 ===
-                USER: %s""".formatted(formatRecentMessages(recentMessages), normalizedInput);
+        return promptRepository.load(RECENT_HISTORY_PROMPT_NAME, java.util.Map.of(
+                "recentMessages", formatRecentMessages(recentMessages),
+                "currentInput", normalizedInput
+        ));
     }
 
     public void addUserMessage(AgentContext context, String content) {

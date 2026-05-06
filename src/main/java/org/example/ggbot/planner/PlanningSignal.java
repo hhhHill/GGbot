@@ -19,6 +19,8 @@ public class PlanningSignal {
 
     private boolean needDoc;
     private boolean needPpt;
+    private boolean needClarification;
+    private String clarificationQuestion;
     private final List<String> matchedKeywords = new ArrayList<>();
     private final List<String> matchedRules = new ArrayList<>();
 
@@ -28,6 +30,11 @@ public class PlanningSignal {
     public void merge(PlanningSignal other) {
         this.needDoc = this.needDoc || other.needDoc;
         this.needPpt = this.needPpt || other.needPpt;
+        this.needClarification = this.needClarification || other.needClarification;
+        if ((this.clarificationQuestion == null || this.clarificationQuestion.isBlank())
+                && other.clarificationQuestion != null && !other.clarificationQuestion.isBlank()) {
+            this.clarificationQuestion = other.clarificationQuestion;
+        }
         this.matchedKeywords.addAll(other.matchedKeywords);
         this.matchedRules.addAll(other.matchedRules);
     }

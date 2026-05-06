@@ -1,0 +1,5 @@
+=== 最近对话 ===
+{{recentMessages}}
+
+=== 当前问题 ===
+USER: {{currentInput}}

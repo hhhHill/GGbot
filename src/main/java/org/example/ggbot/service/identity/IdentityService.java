@@ -48,6 +48,20 @@ public class IdentityService {
     }
 
     @Transactional
+    public ResolvedWebUser createLocalUser(String nickname) {
+        UserEntity user = createUser(nickname, null);
+        OrganizationEntity personalOrg = organizationService.getOrCreatePersonalOrganization(user.getId());
+        ensureUserOrg(user.getId(), personalOrg.getId(), UserOrgRole.OWNER);
+        ensureUserSubject(user.getId(), personalOrg.getId());
+        return new ResolvedWebUser(user, personalOrg);
+    }
+
+    @Transactional
+    public ResolvedWebUser getUserGraph(Long userId) {
+        return ensureExistingWebGraph(userId);
+    }
+
+    @Transactional
     public ResolvedFeishuUser getOrCreateUserByFeishuOpenId(
             String openId,
             String tenantKey,

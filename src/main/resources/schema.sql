@@ -49,6 +49,24 @@ create table if not exists user_orgs (
     constraint uk_user_orgs_user_org unique (user_id, org_id)
 );
 
+create table if not exists local_accounts (
+    user_id bigint primary key,
+    username varchar(100) not null unique,
+    password_hash varchar(500) not null,
+    created_at datetime not null default current_timestamp,
+    updated_at datetime not null default current_timestamp,
+    constraint fk_local_accounts_user foreign key (user_id) references users(id)
+);
+
+create table if not exists web_auth_sessions (
+    token varchar(100) primary key,
+    user_id bigint not null,
+    expires_at datetime not null,
+    created_at datetime not null default current_timestamp,
+    updated_at datetime not null default current_timestamp,
+    constraint fk_web_auth_sessions_user foreign key (user_id) references users(id)
+);
+
 create table if not exists subjects (
     id bigint primary key,
     org_id bigint not null,
@@ -145,3 +163,9 @@ create index idx_memory_org_subject
 
 create index idx_memory_org_type_scope
     on memory (org_id, memory_type, scope);
+
+create index idx_local_accounts_username
+    on local_accounts (username);
+
+create index idx_web_auth_sessions_user
+    on web_auth_sessions (user_id);

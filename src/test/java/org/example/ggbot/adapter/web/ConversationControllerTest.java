@@ -18,9 +18,10 @@ import org.example.ggbot.persistence.entity.MessageEntity;
 import org.example.ggbot.persistence.entity.OrganizationEntity;
 import org.example.ggbot.persistence.entity.UserEntity;
 import org.example.ggbot.service.access.AccessControlService;
+import org.example.ggbot.service.auth.WebUserContext;
+import org.example.ggbot.service.auth.WebUserContextResolver;
 import org.example.ggbot.service.conversation.ConversationService;
 import org.example.ggbot.service.dto.ResolvedWebUser;
-import org.example.ggbot.service.identity.IdentityService;
 import org.example.ggbot.service.organization.OrganizationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,18 +31,18 @@ class ConversationControllerTest {
 
     @Test
     void shouldListAccessibleConversations() throws Exception {
-        IdentityService identityService = mock(IdentityService.class);
+        WebUserContextResolver resolver = mock(WebUserContextResolver.class);
         OrganizationService organizationService = mock(OrganizationService.class);
         ConversationService conversationService = mock(ConversationService.class);
         AccessControlService accessControlService = mock(AccessControlService.class);
-        when(identityService.getOrCreateUserByWebSession("web-user-key-1"))
-                .thenReturn(new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()));
+        when(resolver.resolve(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(baseContext());
         when(conversationService.listAccessibleConversations(3001L, 1001L)).thenReturn(List.of(
                 ConversationEntity.builder().id(7001L).orgId(1001L).title("Hello").lastMessageAt(LocalDateTime.of(2026, 5, 1, 12, 0)).build()
         ));
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ConversationController(identityService, organizationService, accessControlService, conversationService)
+                new ConversationController(resolver, organizationService, accessControlService, conversationService)
         ).build();
 
         mockMvc.perform(get("/api/conversations")
@@ -53,18 +54,18 @@ class ConversationControllerTest {
 
     @Test
     void shouldListMessagesForConversationAfterAccessCheck() throws Exception {
-        IdentityService identityService = mock(IdentityService.class);
+        WebUserContextResolver resolver = mock(WebUserContextResolver.class);
         OrganizationService organizationService = mock(OrganizationService.class);
         ConversationService conversationService = mock(ConversationService.class);
         AccessControlService accessControlService = mock(AccessControlService.class);
-        when(identityService.getOrCreateUserByWebSession("web-user-key-1"))
-                .thenReturn(new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()));
+        when(resolver.resolve(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(baseContext());
         when(conversationService.listMessages(1001L, 7001L)).thenReturn(List.of(
                 MessageEntity.builder().id(8001L).content("hello").build()
         ));
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ConversationController(identityService, organizationService, accessControlService, conversationService)
+                new ConversationController(resolver, organizationService, accessControlService, conversationService)
         ).build();
 
         mockMvc.perform(get("/api/conversations/7001/messages")
@@ -77,17 +78,17 @@ class ConversationControllerTest {
 
     @Test
     void shouldRenameConversationAfterAccessCheck() throws Exception {
-        IdentityService identityService = mock(IdentityService.class);
+        WebUserContextResolver resolver = mock(WebUserContextResolver.class);
         OrganizationService organizationService = mock(OrganizationService.class);
         ConversationService conversationService = mock(ConversationService.class);
         AccessControlService accessControlService = mock(AccessControlService.class);
-        when(identityService.getOrCreateUserByWebSession("web-user-key-1"))
-                .thenReturn(new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()));
+        when(resolver.resolve(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(baseContext());
         when(conversationService.renameConversation(1001L, 7001L, "新标题"))
                 .thenReturn(ConversationEntity.builder().id(7001L).orgId(1001L).title("新标题").build());
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ConversationController(identityService, organizationService, accessControlService, conversationService)
+                new ConversationController(resolver, organizationService, accessControlService, conversationService)
         ).build();
 
         mockMvc.perform(patch("/api/conversations/7001/title")
@@ -104,15 +105,15 @@ class ConversationControllerTest {
 
     @Test
     void shouldDeleteConversationAfterAccessCheck() throws Exception {
-        IdentityService identityService = mock(IdentityService.class);
+        WebUserContextResolver resolver = mock(WebUserContextResolver.class);
         OrganizationService organizationService = mock(OrganizationService.class);
         ConversationService conversationService = mock(ConversationService.class);
         AccessControlService accessControlService = mock(AccessControlService.class);
-        when(identityService.getOrCreateUserByWebSession("web-user-key-1"))
-                .thenReturn(new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()));
+        when(resolver.resolve(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(baseContext());
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new ConversationController(identityService, organizationService, accessControlService, conversationService)
+                new ConversationController(resolver, organizationService, accessControlService, conversationService)
         ).build();
 
         mockMvc.perform(delete("/api/conversations/7001")
@@ -122,5 +123,14 @@ class ConversationControllerTest {
                 .andExpect(jsonPath("$.data").value(true));
 
         verify(conversationService).deleteConversation(1001L, 7001L);
+    }
+
+    private WebUserContext baseContext() {
+        return new WebUserContext(
+                "web-user-key-1",
+                new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()),
+                false,
+                null
+        );
     }
 }

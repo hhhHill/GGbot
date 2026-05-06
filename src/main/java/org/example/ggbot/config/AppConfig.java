@@ -5,8 +5,6 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.example.ggbot.agent.graph.AgentGraphProperties;
 import org.example.ggbot.adapter.feishu.FeishuProperties;
-import org.example.ggbot.tool.impl.GenerateDocTool;
-import org.example.ggbot.tool.impl.GeneratePptTool;
 import org.example.ggbot.tool.impl.ModifyPptTool;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
@@ -29,12 +27,14 @@ public class AppConfig {
 
     @Bean
     public ToolCallbackProvider toolCallbackProvider(
-            GenerateDocTool generateDocTool,
-            GeneratePptTool generatePptTool,
             ModifyPptTool modifyPptTool) {
+        // Only register tools that do not depend on ChatClient themselves.
+        // GenerateDocTool / GeneratePptTool both depend on chat generation and
+        // registering them globally would create a startup cycle in Spring AI tool resolution.
         return MethodToolCallbackProvider.builder()
-                .toolObjects(generateDocTool, generatePptTool, modifyPptTool)
-                .build();
+                .toolObjects(modifyPptTool)
+                .build()
+                ;
     }
 
     @Bean

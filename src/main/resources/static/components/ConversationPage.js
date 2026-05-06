@@ -1,8 +1,6 @@
 import { html } from "../lib/html.js";
-import { ChatHeader } from "./ChatHeader.js";
-import { MessageList } from "./MessageList.js";
-import { InputBox } from "./InputBox.js";
-import { QuickActions } from "./QuickActions.js";
+import { DebugPanel } from "./DebugPanel.js";
+import { ChatArea } from "./ChatArea.js";
 
 export function ConversationPage({
     title,
@@ -14,18 +12,33 @@ export function ConversationPage({
     onDraftChange,
     onSend,
     onQuickAction,
-    onRetryTask
+    onRetryTask,
+    headerProps = {},
+    debugPanelCollapsed = false,
+    onToggleDebugPanel
 }) {
-    const messages = session?.messages || [];
-    const isEmpty = !loading && messages.length === 0;
-
     return html`
         <section className="chat-page session-view">
-            <${ChatHeader} title=${title} />
-            <${MessageList}
-                messages=${messages}
+            <button
+                className="chat-secondary-button debug-drawer-toggle"
+                type="button"
+                aria-expanded=${String(!debugPanelCollapsed)}
+                onClick=${onToggleDebugPanel}
+            >
+                ${debugPanelCollapsed ? "打开 Debug" : "关闭 Debug"}
+            </button>
+            <${ChatArea}
+                title=${title}
+                session=${session}
                 loading=${loading}
+                sending=${sending}
+                error=${error}
+                draft=${draft}
+                onDraftChange=${onDraftChange}
+                onSend=${onSend}
+                onQuickAction=${onQuickAction}
                 onRetryTask=${onRetryTask}
+                quickActionsTone="inline"
                 emptyContent=${html`
                     <section className="empty-state-shell session-shell">
                         <h2 className="empty-title">对话已创建</h2>
@@ -33,16 +46,32 @@ export function ConversationPage({
                     </section>
                 `}
             />
-            <div className="composer-wrap">
-                <${InputBox}
-                    sending=${sending}
-                    error=${error}
-                    value=${draft}
-                    onChange=${onDraftChange}
-                    onSend=${onSend}
-                    quickActions=${!isEmpty ? html`<${QuickActions} tone="inline" onPick=${onQuickAction} />` : null}
+            ${debugPanelCollapsed ? null : html`
+                <button className="debug-drawer-backdrop" type="button" aria-label="关闭 Debug Panel" onClick=${onToggleDebugPanel}></button>
+            `}
+            <aside className=${`debug-drawer-shell${debugPanelCollapsed ? "" : " open"}`} aria-hidden=${String(debugPanelCollapsed)}>
+                <${DebugPanel}
+                    userId=${headerProps.userId}
+                    webUserKey=${headerProps.webUserKey}
+                    authenticated=${headerProps.authenticated}
+                    loginName=${headerProps.loginName}
+                    organizations=${headerProps.organizations}
+                    currentOrgId=${headerProps.currentOrgId}
+                    switchingOrg=${headerProps.switchingOrg}
+                    binding=${headerProps.binding}
+                    bindToken=${headerProps.bindToken}
+                    authDraft=${headerProps.authDraft}
+                    authBusy=${headerProps.authBusy}
+                    onSwitchOrganization=${headerProps.onSwitchOrganization}
+                    onCreateBindToken=${headerProps.onCreateBindToken}
+                    onAuthDraftChange=${headerProps.onAuthDraftChange}
+                    onLogin=${headerProps.onLogin}
+                    onRegister=${headerProps.onRegister}
+                    onLogout=${headerProps.onLogout}
+                    collapsed=${debugPanelCollapsed}
+                    onToggleCollapsed=${onToggleDebugPanel}
                 />
-            </div>
+            </aside>
         </section>
     `;
 }

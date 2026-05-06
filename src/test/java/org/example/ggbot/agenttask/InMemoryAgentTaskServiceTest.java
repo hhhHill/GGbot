@@ -78,6 +78,23 @@ class InMemoryAgentTaskServiceTest {
                 .hasMessageContaining(task.getTaskId());
     }
 
+    @Test
+    void shouldFindActiveTaskBySourceAndConversationIdUntilTaskCompletes() {
+        InMemoryAgentTaskService service = new InMemoryAgentTaskService(new IdGenerator());
+        AgentTaskRecord task = service.createTask(request("hello"), "feishu", null);
+
+        assertThat(service.findActiveTask("feishu", "session-1")).contains(task);
+
+        service.markRunning(task.getTaskId());
+        assertThat(service.findActiveTask("feishu", "session-1")).isPresent();
+
+        service.markRetrying(task.getTaskId(), 1, "temporary");
+        assertThat(service.findActiveTask("feishu", "session-1")).isPresent();
+
+        service.markSuccess(task.getTaskId(), "done");
+        assertThat(service.findActiveTask("feishu", "session-1")).isEmpty();
+    }
+
     private AgentRequest request(String input) {
         return new AgentRequest("session-1", "user-1", input, AgentChannel.WEB, null, "session-1", Map.of());
     }

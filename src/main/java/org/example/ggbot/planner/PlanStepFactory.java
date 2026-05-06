@@ -24,14 +24,58 @@ public class PlanStepFactory {
      */
     public List<PlanStep> createSteps(PlanningSignal signal, String input) {
         List<PlanStep> steps = new ArrayList<>();
+        if (signal.isNeedClarification()) {
+            steps.add(new PlanStep(
+                    stepId(),
+                    StepType.CLARIFY,
+                    null,
+                    signal.getClarificationQuestion(),
+                    signal.getClarificationQuestion(),
+                    List.of(),
+                    List.of(),
+                    "用户补充的任务目标、主题和交付要求"
+            ));
+            return steps;
+        }
         if (signal.isNeedDoc()) {
-            steps.add(new PlanStep(stepId(), ToolName.GENERATE_DOC, "生成方案文档", input));
+            steps.add(new PlanStep(
+                    stepId(),
+                    StepType.GENERATE_DOC,
+                    ToolName.GENERATE_DOC,
+                    "生成方案文档",
+                    input,
+                    List.of(),
+                    List.of(),
+                    "一份结构化文档草稿"
+            ));
         }
         if (signal.isNeedPpt()) {
-            steps.add(new PlanStep(stepId(), ToolName.GENERATE_PPT, "生成汇报 PPT 大纲", input));
+            List<String> dependsOn = steps.stream()
+                    .filter(step -> step.getType() == StepType.GENERATE_DOC)
+                    .map(PlanStep::getStepId)
+                    .toList();
+            steps.add(new PlanStep(
+                    stepId(),
+                    StepType.GENERATE_PPT,
+                    ToolName.GENERATE_PPT,
+                    "生成汇报 PPT 大纲",
+                    input,
+                    dependsOn,
+                    dependsOn,
+                    "一份汇报 PPT 大纲"
+            ));
         }
         if (!signal.isNeedDoc() && !signal.isNeedPpt()) {
-            steps.add(new PlanStep(stepId(), ToolName.SUMMARIZE, "生成直接回复", input));
+            steps.add(new PlanStep(
+                    stepId(),
+                    StepType.SUMMARIZE,
+                    ToolName.SUMMARIZE,
+                    "生成直接回复",
+                    input,
+                    List.of(),
+                    List.of(),
+                    "一段总结答复"
+            ));
         }
         return steps;
     }

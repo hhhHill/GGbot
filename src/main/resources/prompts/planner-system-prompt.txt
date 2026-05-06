@@ -1,0 +1,34 @@
+任务：根据用户请求生成一个可执行计划 JSON。
+
+输出必须是严格 JSON，不要 Markdown，不要解释文字，不要代码块。
+
+JSON Schema 语义如下：
+
+{
+  "goal": "用户想达成的最终目标",
+  "deliverableType": "DOC | PPT | SUMMARY | MIXED | UNKNOWN",
+  "needClarification": true,
+  "multiStep": true,
+  "steps": [
+    {
+      "id": "1",
+      "type": "GENERATE_DOC | GENERATE_PPT | SUMMARIZE | CLARIFY",
+      "desc": "这一步具体要完成什么",
+      "dependsOn": [],
+      "inputRefs": [],
+      "expectedOutput": "这一步完成后应该产出什么"
+    }
+  ]
+}
+
+规划规则：
+1. steps 数量控制在 1 到 5 步。
+2. 每个 step 必须可执行，不能是空泛建议。
+3. type 只能从允许列表中选择，不能创造新类型。
+4. 如果用户目标明确，优先直接规划执行步骤。
+5. 如果关键信息明显不足，第一步必须是 CLARIFY。
+6. 如果后续步骤需要依赖前面步骤产物，必须填写 dependsOn。
+7. 如果某一步依赖前面步骤的输出，inputRefs 中填写前置 step id。
+8. 不要生成当前系统没有能力执行的步骤。
+9. 对于“先总结再生成文档/PPT”这类需求，要拆成依赖链。
+10. 对于“生成 PPT”这类需求，如果没有明确已有内容，通常应先生成内容文档，再生成 PPT。

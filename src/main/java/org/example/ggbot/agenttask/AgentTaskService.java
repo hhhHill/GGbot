@@ -1,5 +1,6 @@
 package org.example.ggbot.agenttask;
 
+import java.util.Optional;
 import org.example.ggbot.agent.AgentRequest;
 
 /**
@@ -25,6 +26,15 @@ public interface AgentTaskService {
      * @return 任务创建结果
      */
     AgentTaskCreationResult createOrGetByExternalEventId(AgentRequest request, String source, String externalEventId);
+
+    /**
+     * 查询指定来源和会话下的进行中任务
+     * 进行中任务包括等待执行、执行中和重试中
+     * @param source 任务来源
+     * @param conversationId 会话ID
+     * @return 进行中任务，不存在时为空
+     */
+    Optional<AgentTaskRecord> findActiveTask(String source, String conversationId);
 
     /**
      * 根据任务ID查询任务

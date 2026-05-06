@@ -6,14 +6,20 @@ import { HomePage } from "./components/HomePage.js";
 import { ConversationPage } from "./components/ConversationPage.js";
 import { ChatLayout } from "./components/ChatLayout.js";
 import {
+    createFeishuBindToken,
     deleteSession,
+    fetchOrganizations,
     fetchSession,
     fetchSessions,
     fetchTaskStatus,
     fetchWebContext,
+    loginLocalAccount,
+    logoutLocalAccount,
     openAgentChatStream,
+    registerLocalAccount,
     renameSession,
-    retryTask
+    retryTask,
+    switchOrganization
 } from "./services/session-api.js";
 import {
     getChatRoute,
@@ -24,8 +30,10 @@ import {
 } from "./services/router.js";
 import {
     loadCachedChatState,
+    loadDebugPanelCollapsedPreference,
     loadSidebarCollapsedPreference,
     saveCachedChatState,
+    saveDebugPanelCollapsedPreference,
     saveSidebarCollapsedPreference
 } from "./services/local-storage.js";
 
@@ -186,10 +194,18 @@ function App() {
     });
     const [routePath, setRoutePath] = useState(window.location.pathname);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(() => loadSidebarCollapsedPreference());
+    const [debugPanelCollapsed, setDebugPanelCollapsed] = useState(() => loadDebugPanelCollapsedPreference());
     const [selectedSessionId, setSelectedSessionId] = useState(
         shouldRestoreSession ? cachedState.activeSessionId || null : initialRoute.type === "session" ? initialRoute.sessionId : null
     );
     const [webContext, setWebContext] = useState(null);
+    const [authDraft, setAuthDraft] = useState({ username: "", password: "" });
+    const [authBusy, setAuthBusy] = useState(false);
+    const [organizations, setOrganizations] = useState([]);
+    const [currentOrgId, setCurrentOrgId] = useState(null);
+    const [switchingOrg, setSwitchingOrg] = useState(false);
+    const [bindingToken, setBindingToken] = useState("");
+    const [bindingTokenLoading, setBindingTokenLoading] = useState(false);
     const [contextReady, setContextReady] = useState(false);
     const pollingRef = useRef(new Map());
     const chatStreamRef = useRef(null);
@@ -205,6 +221,7 @@ function App() {
                     return;
                 }
                 setWebContext(context);
+                setCurrentOrgId(context.personalOrgId ? String(context.personalOrgId) : null);
                 setContextReady(true);
             } catch (error) {
                 if (!active) {
@@ -224,15 +241,22 @@ function App() {
         if (!contextReady || !webContext) {
             return;
         }
-        void loadSessions(webContext.personalOrgId);
+        void loadOrganizations();
     }, [contextReady, webContext]);
 
     useEffect(() => {
-        if (!contextReady || !webContext) {
+        if (!contextReady || !currentOrgId) {
             return;
         }
-        void openRoute(routePath, webContext.personalOrgId);
-    }, [contextReady, routePath, webContext, state.sessions]);
+        void loadSessions(currentOrgId);
+    }, [contextReady, currentOrgId]);
+
+    useEffect(() => {
+        if (!contextReady || !currentOrgId) {
+            return;
+        }
+        void openRoute(routePath, currentOrgId);
+    }, [contextReady, routePath, currentOrgId, state.sessions]);
 
     useEffect(() => {
         saveCachedChatState({
@@ -246,6 +270,10 @@ function App() {
     useEffect(() => {
         saveSidebarCollapsedPreference(sidebarCollapsed);
     }, [sidebarCollapsed]);
+
+    useEffect(() => {
+        saveDebugPanelCollapsedPreference(debugPanelCollapsed);
+    }, [debugPanelCollapsed]);
 
     useEffect(() => {
         const messages = state.activeSession?.messages || [];
@@ -274,6 +302,23 @@ function App() {
         }
         pollingRef.current.clear();
     }, []);
+
+    async function loadOrganizations(fallbackOrgId = webContext?.personalOrgId) {
+        try {
+            const nextOrganizations = await fetchOrganizations();
+            setOrganizations(nextOrganizations);
+            setCurrentOrgId((previousOrgId) => resolvePreferredOrgId(nextOrganizations, previousOrgId, fallbackOrgId));
+        } catch (error) {
+            dispatch({ type: "error", message: error.message || "加载组织失败" });
+        }
+    }
+
+    async function refreshWebContext() {
+        const context = await fetchWebContext();
+        setWebContext(context);
+        setCurrentOrgId(context.personalOrgId ? String(context.personalOrgId) : null);
+        return context;
+    }
 
     async function loadSessions(orgId) {
         dispatch({ type: "sessions/loading" });
@@ -323,7 +368,7 @@ function App() {
     }
 
     async function handleRenameSession(session) {
-        if (!webContext) {
+        if (!currentOrgId) {
             return;
         }
         const nextTitle = window.prompt("请输入新的会话名称", session.title || "新对话");
@@ -335,7 +380,7 @@ function App() {
             return;
         }
         try {
-            const renamedSession = await renameSession(webContext.personalOrgId, session.sessionId, normalizedTitle);
+            const renamedSession = await renameSession(currentOrgId, session.sessionId, normalizedTitle);
             dispatch({ type: "session/renamed", session: renamedSession });
         } catch (error) {
             dispatch({ type: "error", message: error.message || "重命名会话失败" });
@@ -343,7 +388,7 @@ function App() {
     }
 
     async function handleDeleteSession(session) {
-        if (!webContext) {
+        if (!currentOrgId) {
             return;
         }
         const shouldDelete = window.confirm(`确定删除对话“${session.title || "新对话"}”吗？`);
@@ -351,7 +396,7 @@ function App() {
             return;
         }
         try {
-            await deleteSession(webContext.personalOrgId, session.sessionId);
+            await deleteSession(currentOrgId, session.sessionId);
             const deletingActive = state.activeSessionId === session.sessionId || selectedSessionId === session.sessionId;
             dispatch({ type: "session/deleted", sessionId: session.sessionId });
             if (deletingActive) {
@@ -365,9 +410,10 @@ function App() {
 
     async function handleSendMessage(content) {
         const message = content.trim();
-        if (!message || !webContext) {
+        if (!message || !webContext || !currentOrgId) {
             return;
         }
+        setBindingToken("");
         dispatch({ type: "draft/set", value: "" });
 
         const conversationId = selectedSessionId || state.activeSessionId || state.activeSession?.sessionId || null;
@@ -411,7 +457,7 @@ function App() {
                 conversationId,
                 userId: String(webContext.userId),
                 webUserKey: webContext.webUserKey,
-                orgId: webContext.personalOrgId,
+                orgId: currentOrgId,
                 message
             });
             chatStreamRef.current = source;
@@ -433,7 +479,7 @@ function App() {
                     chatStreamRef.current = null;
                 }
                 source.close();
-                await loadSessions(webContext.personalOrgId);
+                await loadSessions(currentOrgId);
                 dispatch({ type: "sending", value: false });
             };
 
@@ -602,8 +648,8 @@ function App() {
                 });
                 if (isFinalTaskStatus(task.status)) {
                     pollingRef.current.delete(taskId);
-                    if (webContext) {
-                        await loadSessions(webContext.personalOrgId);
+                    if (currentOrgId) {
+                        await loadSessions(currentOrgId);
                     }
                     return;
                 }
@@ -629,10 +675,108 @@ function App() {
         pollingRef.current.set(taskId, timeoutId);
     }
 
+    async function handleSwitchOrganization(nextOrgId) {
+        const normalizedOrgId = nextOrgId ? String(nextOrgId) : "";
+        if (!normalizedOrgId || normalizedOrgId === String(currentOrgId || "")) {
+            return;
+        }
+        setSwitchingOrg(true);
+        try {
+            await switchOrganization(Number(normalizedOrgId));
+            setCurrentOrgId(normalizedOrgId);
+            setBindingToken("");
+            setSelectedSessionId(null);
+            dispatch({ type: "session/cleared" });
+            goToHome(true);
+        } catch (error) {
+            dispatch({ type: "error", message: error.message || "切换组织失败" });
+        } finally {
+            setSwitchingOrg(false);
+        }
+    }
+
+    async function handleCreateBindToken() {
+        if (!currentOrgId) {
+            return;
+        }
+        setBindingTokenLoading(true);
+        try {
+            const response = await createFeishuBindToken(Number(currentOrgId));
+            setBindingToken(response.token || "");
+        } catch (error) {
+            dispatch({ type: "error", message: error.message || "生成绑定码失败" });
+        } finally {
+            setBindingTokenLoading(false);
+        }
+    }
+
+    async function handleAuth(action) {
+        const username = (authDraft.username || "").trim();
+        const password = authDraft.password || "";
+        if (!username || !password) {
+            dispatch({ type: "error", message: "请输入用户名和密码" });
+            return;
+        }
+        setAuthBusy(true);
+        try {
+            if (action === "login") {
+                await loginLocalAccount(username, password);
+            } else {
+                await registerLocalAccount(username, password);
+            }
+            await refreshAfterAuthChange();
+            setAuthDraft({ username: "", password: "" });
+        } catch (error) {
+            dispatch({ type: "error", message: error.message || (action === "login" ? "登录失败" : "注册失败") });
+        } finally {
+            setAuthBusy(false);
+        }
+    }
+
+    async function handleLogout() {
+        setAuthBusy(true);
+        try {
+            await logoutLocalAccount();
+            await refreshAfterAuthChange();
+        } catch (error) {
+            dispatch({ type: "error", message: error.message || "退出登录失败" });
+        } finally {
+            setAuthBusy(false);
+        }
+    }
+
+    async function refreshAfterAuthChange() {
+        setBindingToken("");
+        setSelectedSessionId(null);
+        dispatch({ type: "session/cleared" });
+        goToHome(true);
+        const context = await refreshWebContext();
+        await loadOrganizations(context.personalOrgId);
+    }
+
     const sessionTitle = useMemo(
         () => state.activeSession?.title || findSessionSummary(state.sessions, selectedSessionId)?.title || "新对话",
         [state.activeSession, state.sessions, selectedSessionId]
     );
+    const headerProps = {
+        userId: webContext?.userId || null,
+        webUserKey: webContext?.webUserKey || "",
+        authenticated: webContext?.authenticated || false,
+        loginName: webContext?.loginName || "",
+        organizations,
+        currentOrgId,
+        switchingOrg,
+        binding: bindingTokenLoading,
+        bindToken: bindingToken,
+        authDraft,
+        authBusy,
+        onSwitchOrganization: handleSwitchOrganization,
+        onCreateBindToken: handleCreateBindToken,
+        onAuthDraftChange: (field, value) => setAuthDraft((draft) => ({ ...draft, [field]: value })),
+        onLogin: () => handleAuth("login"),
+        onRegister: () => handleAuth("register"),
+        onLogout: handleLogout
+    };
     const showConversation = Boolean(selectedSessionId || state.activeSession);
     const page = showConversation
         ? html`
@@ -647,6 +791,9 @@ function App() {
                 onSend=${handleSendMessage}
                 onQuickAction=${(value) => dispatch({ type: "draft/set", value })}
                 onRetryTask=${handleRetryTask}
+                headerProps=${headerProps}
+                debugPanelCollapsed=${debugPanelCollapsed}
+                onToggleDebugPanel=${() => setDebugPanelCollapsed((value) => !value)}
             />
         `
         : html`
@@ -657,6 +804,9 @@ function App() {
                 onDraftChange=${(value) => dispatch({ type: "draft/set", value })}
                 onSend=${handleSendMessage}
                 onQuickAction=${(value) => dispatch({ type: "draft/set", value })}
+                headerProps=${headerProps}
+                debugPanelCollapsed=${debugPanelCollapsed}
+                onToggleDebugPanel=${() => setDebugPanelCollapsed((value) => !value)}
             />
         `;
 
@@ -679,6 +829,18 @@ function App() {
             ${page}
         </${ChatLayout}>
     `;
+}
+
+function resolvePreferredOrgId(organizations, preferredOrgId, fallbackOrgId) {
+    const normalizedPreferredOrgId = preferredOrgId ? String(preferredOrgId) : "";
+    if (normalizedPreferredOrgId && organizations.some((org) => String(org.orgId) === normalizedPreferredOrgId)) {
+        return normalizedPreferredOrgId;
+    }
+    const normalizedFallbackOrgId = fallbackOrgId ? String(fallbackOrgId) : "";
+    if (normalizedFallbackOrgId && organizations.some((org) => String(org.orgId) === normalizedFallbackOrgId)) {
+        return normalizedFallbackOrgId;
+    }
+    return organizations[0] ? String(organizations[0].orgId) : null;
 }
 
 function patchFromTask(task) {

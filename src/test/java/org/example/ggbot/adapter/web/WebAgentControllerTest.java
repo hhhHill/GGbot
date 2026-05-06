@@ -23,9 +23,10 @@ import org.example.ggbot.persistence.entity.ConversationEntity;
 import org.example.ggbot.persistence.entity.OrganizationEntity;
 import org.example.ggbot.persistence.entity.SubjectEntity;
 import org.example.ggbot.persistence.entity.UserEntity;
+import org.example.ggbot.service.auth.WebUserContext;
+import org.example.ggbot.service.auth.WebUserContextResolver;
 import org.example.ggbot.service.conversation.ConversationService;
 import org.example.ggbot.service.dto.ResolvedWebUser;
-import org.example.ggbot.service.identity.IdentityService;
 import org.example.ggbot.service.organization.OrganizationService;
 import org.example.ggbot.service.subject.SubjectService;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,7 @@ class WebAgentControllerTest {
 
     @Test
     void shouldCreatePersistentConversationWhenConversationIdMissing() throws Exception {
-        IdentityService identityService = mock(IdentityService.class);
+        WebUserContextResolver resolver = mock(WebUserContextResolver.class);
         OrganizationService organizationService = mock(OrganizationService.class);
         SubjectService subjectService = mock(SubjectService.class);
         ConversationService conversationService = mock(ConversationService.class);
@@ -50,14 +51,14 @@ class WebAgentControllerTest {
         ConversationEntity conversation = ConversationEntity.builder().id(7001L).orgId(1001L).subjectId(5001L).build();
         AgentTaskRecord task = taskRecord("task-1", "7001", "3001", "hello");
 
-        when(identityService.getOrCreateUserByWebSession("web-user-key-1"))
-                .thenReturn(new ResolvedWebUser(user, personalOrg));
+        when(resolver.resolve(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(new WebUserContext("web-user-key-1", new ResolvedWebUser(user, personalOrg), false, null));
         when(subjectService.getOrCreateUserSubject(3001L, 1001L)).thenReturn(subject);
         when(conversationService.createConversation(1001L, 5001L, "web", "hello", 3001L)).thenReturn(conversation);
         when(taskService.createTask(any(AgentRequest.class), eq("web"), eq(null))).thenReturn(task);
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new WebAgentController(
-                taskService, taskExecutor, identityService, organizationService, subjectService, conversationService
+                taskService, taskExecutor, resolver, organizationService, subjectService, conversationService
         )).build();
 
         mockMvc.perform(post("/api/agent/chat")
@@ -79,7 +80,7 @@ class WebAgentControllerTest {
 
     @Test
     void shouldReusePersistentConversationWhenConversationIdProvided() throws Exception {
-        IdentityService identityService = mock(IdentityService.class);
+        WebUserContextResolver resolver = mock(WebUserContextResolver.class);
         OrganizationService organizationService = mock(OrganizationService.class);
         SubjectService subjectService = mock(SubjectService.class);
         ConversationService conversationService = mock(ConversationService.class);
@@ -91,13 +92,13 @@ class WebAgentControllerTest {
         SubjectEntity subject = SubjectEntity.builder().id(5001L).build();
         AgentTaskRecord task = taskRecord("task-2", "7001", "3001", "again");
 
-        when(identityService.getOrCreateUserByWebSession("web-user-key-1"))
-                .thenReturn(new ResolvedWebUser(user, personalOrg));
+        when(resolver.resolve(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(new WebUserContext("web-user-key-1", new ResolvedWebUser(user, personalOrg), false, null));
         when(subjectService.getOrCreateUserSubject(3001L, 1001L)).thenReturn(subject);
         when(taskService.createTask(any(AgentRequest.class), eq("web"), eq(null))).thenReturn(task);
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new WebAgentController(
-                taskService, taskExecutor, identityService, organizationService, subjectService, conversationService
+                taskService, taskExecutor, resolver, organizationService, subjectService, conversationService
         )).build();
 
         mockMvc.perform(post("/api/agent/chat")

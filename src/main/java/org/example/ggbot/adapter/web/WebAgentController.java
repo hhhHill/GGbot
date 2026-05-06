@@ -18,12 +18,11 @@ import org.example.ggbot.agenttask.AgentTaskRecord;
 import org.example.ggbot.agenttask.AgentTaskService;
 import org.example.ggbot.common.ApiResponse;
 import org.example.ggbot.enums.MessageRole;
-import org.example.ggbot.exception.BadRequestException;
 import org.example.ggbot.persistence.entity.ConversationEntity;
 import org.example.ggbot.persistence.entity.SubjectEntity;
+import org.example.ggbot.service.auth.WebUserContext;
+import org.example.ggbot.service.auth.WebUserContextResolver;
 import org.example.ggbot.service.conversation.ConversationService;
-import org.example.ggbot.service.dto.ResolvedWebUser;
-import org.example.ggbot.service.identity.IdentityService;
 import org.example.ggbot.service.organization.OrganizationService;
 import org.example.ggbot.service.subject.SubjectService;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -51,7 +50,7 @@ public class WebAgentController {
 
     private final AgentTaskService taskService;
     private final AgentTaskExecutor taskExecutor;
-    private final IdentityService identityService;
+    private final WebUserContextResolver webUserContextResolver;
     private final OrganizationService organizationService;
     private final SubjectService subjectService;
     private final ConversationService conversationService;
@@ -66,9 +65,10 @@ public class WebAgentController {
     @PostMapping("/chat")
     public ApiResponse<AgentTaskAcceptedResponse> chat(
             @CookieValue(value = "web_user_key", required = false) Cookie webUserKeyCookie,
+            @CookieValue(value = "web_auth_token", required = false) Cookie authCookie,
             @RequestBody WebChatRequest request
     ) {
-        PreparedWebChat prepared = prepareWebChat(webUserKeyCookie, request);
+        PreparedWebChat prepared = prepareWebChat(authCookie, webUserKeyCookie, request);
         AgentRequest agentRequest = toAgentRequest(prepared);
         AgentTaskRecord task = taskService.createTask(agentRequest, "web", null);
         taskExecutor.submit(task.getTaskId());
@@ -86,6 +86,7 @@ public class WebAgentController {
     @GetMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatStream(
             @CookieValue(value = "web_user_key", required = false) Cookie webUserKeyCookie,
+            @CookieValue(value = "web_auth_token", required = false) Cookie authCookie,
             @ModelAttribute WebChatRequest request
     ) {
         SseEmitter emitter = new SseEmitter(0L);
@@ -96,7 +97,7 @@ public class WebAgentController {
                 throw new StreamEmissionException(exception);
             }
         };
-        PreparedWebChat prepared = prepareWebChat(webUserKeyCookie, request);
+        PreparedWebChat prepared = prepareWebChat(authCookie, webUserKeyCookie, request);
         AgentRequest agentRequest = toAgentRequest(prepared, chunkConsumer);
         AgentTaskRecord task = taskService.createTask(agentRequest, "web", null);
         emitter.onCompletion(() -> log.debug("Agent stream {} completed", task.getTaskId()));
@@ -160,10 +161,10 @@ public class WebAgentController {
         );
     }
 
-    private PreparedWebChat prepareWebChat(Cookie webUserKeyCookie, WebChatRequest request) {
-        ResolvedWebUser resolvedUser = identityService.getOrCreateUserByWebSession(resolveWebUserKey(webUserKeyCookie, request));
-        Long userId = resolvedUser.user().getId();
-        Long currentOrgId = resolveOrgId(resolvedUser, request.getOrgId());
+    private PreparedWebChat prepareWebChat(Cookie authCookie, Cookie webUserKeyCookie, WebChatRequest request) {
+        WebUserContext context = webUserContextResolver.resolve(authCookie, webUserKeyCookie, request.getWebUserKey(), false);
+        Long userId = context.resolvedUser().user().getId();
+        Long currentOrgId = resolveOrgId(context, request.getOrgId());
         SubjectEntity subject = subjectService.getOrCreateUserSubject(userId, currentOrgId);
         ConversationEntity conversation = resolveConversation(currentOrgId, subject.getId(), userId, request.getConversationId(), request.getMessage());
         conversationService.addMessage(
@@ -178,21 +179,11 @@ public class WebAgentController {
         return new PreparedWebChat(currentOrgId, userId, conversation.getId(), request.getMessage());
     }
 
-    private String resolveWebUserKey(Cookie webUserKeyCookie, WebChatRequest request) {
-        if (webUserKeyCookie != null && webUserKeyCookie.getValue() != null && !webUserKeyCookie.getValue().isBlank()) {
-            return webUserKeyCookie.getValue();
-        }
-        if (request.getWebUserKey() != null && !request.getWebUserKey().isBlank()) {
-            return request.getWebUserKey();
-        }
-        throw new BadRequestException("web_user_key cookie or webUserKey is required");
-    }
-
-    private Long resolveOrgId(ResolvedWebUser resolvedUser, Long requestedOrgId) {
+    private Long resolveOrgId(WebUserContext context, Long requestedOrgId) {
         if (requestedOrgId == null) {
-            return resolvedUser.personalOrg().getId();
+            return context.resolvedUser().personalOrg().getId();
         }
-        organizationService.checkUserActiveInOrg(resolvedUser.user().getId(), requestedOrgId);
+        organizationService.checkUserActiveInOrg(context.resolvedUser().user().getId(), requestedOrgId);
         return requestedOrgId;
     }
 

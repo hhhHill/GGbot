@@ -6,11 +6,12 @@ import java.util.List;
 import java.util.Map;
 import org.example.ggbot.agent.AgentChannel;
 import org.example.ggbot.agent.AgentContext;
+import org.example.ggbot.prompt.ClasspathPromptRepository;
 import org.junit.jupiter.api.Test;
 
 class MemoryManagerTest {
 
-    private final MemoryManager memoryManager = new MemoryManager();
+    private final MemoryManager memoryManager = new MemoryManager(new ClasspathPromptRepository());
 
     @Test
     void shouldBuildPromptWithCurrentQuestionOnlyWhenHistoryIsEmpty() {

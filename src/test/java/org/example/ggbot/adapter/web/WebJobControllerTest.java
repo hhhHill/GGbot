@@ -28,9 +28,10 @@ import org.example.ggbot.agenttask.AgentTaskStatus;
 import org.example.ggbot.persistence.entity.OrganizationEntity;
 import org.example.ggbot.persistence.entity.SubjectEntity;
 import org.example.ggbot.persistence.entity.UserEntity;
+import org.example.ggbot.service.auth.WebUserContext;
+import org.example.ggbot.service.auth.WebUserContextResolver;
 import org.example.ggbot.service.conversation.ConversationService;
 import org.example.ggbot.service.dto.ResolvedWebUser;
-import org.example.ggbot.service.identity.IdentityService;
 import org.example.ggbot.service.organization.OrganizationService;
 import org.example.ggbot.service.subject.SubjectService;
 import org.junit.jupiter.api.Test;
@@ -45,20 +46,20 @@ class WebJobControllerTest {
     void shouldCreateTaskAndReturnPendingStatusForChatRequests() throws Exception {
         AgentTaskService taskService = mock(AgentTaskService.class);
         AgentTaskExecutor taskExecutor = mock(AgentTaskExecutor.class);
-        IdentityService identityService = mock(IdentityService.class);
+        WebUserContextResolver resolver = mock(WebUserContextResolver.class);
         OrganizationService organizationService = mock(OrganizationService.class);
         SubjectService subjectService = mock(SubjectService.class);
         ConversationService conversationService = mock(ConversationService.class);
         AgentTaskRecord task = task("agent-task-1", AgentTaskStatus.PENDING);
         when(taskService.createTask(any(), eq("web"), eq(null))).thenReturn(task);
-        when(identityService.getOrCreateUserByWebSession("web-user-key-1"))
-                .thenReturn(new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()));
+        when(resolver.resolve(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(baseContext());
         when(subjectService.getOrCreateUserSubject(3001L, 1001L)).thenReturn(SubjectEntity.builder().id(5001L).build());
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new WebAgentController(
                 taskService,
                 taskExecutor,
-                identityService,
+                resolver,
                 organizationService,
                 subjectService,
                 conversationService
@@ -92,7 +93,7 @@ class WebJobControllerTest {
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new WebAgentController(
                 taskService,
                 taskExecutor,
-                mock(IdentityService.class),
+                mock(WebUserContextResolver.class),
                 mock(OrganizationService.class),
                 mock(SubjectService.class),
                 mock(ConversationService.class)
@@ -115,7 +116,7 @@ class WebJobControllerTest {
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new WebAgentController(
                 taskService,
                 taskExecutor,
-                mock(IdentityService.class),
+                mock(WebUserContextResolver.class),
                 mock(OrganizationService.class),
                 mock(SubjectService.class),
                 mock(ConversationService.class)
@@ -134,20 +135,20 @@ class WebJobControllerTest {
     void shouldStartStreamEndpointWithSseEmitter() throws Exception {
         AgentTaskService taskService = mock(AgentTaskService.class);
         AgentTaskExecutor taskExecutor = mock(AgentTaskExecutor.class);
-        IdentityService identityService = mock(IdentityService.class);
+        WebUserContextResolver resolver = mock(WebUserContextResolver.class);
         OrganizationService organizationService = mock(OrganizationService.class);
         SubjectService subjectService = mock(SubjectService.class);
         ConversationService conversationService = mock(ConversationService.class);
         AgentTaskRecord task = task("agent-task-1", AgentTaskStatus.PENDING);
         when(taskService.createTask(any(), eq("web"), eq(null))).thenReturn(task);
-        when(identityService.getOrCreateUserByWebSession("web-user-key-1"))
-                .thenReturn(new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()));
+        when(resolver.resolve(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(baseContext());
         when(subjectService.getOrCreateUserSubject(3001L, 1001L)).thenReturn(SubjectEntity.builder().id(5001L).build());
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new WebAgentController(
                 taskService,
                 taskExecutor,
-                identityService,
+                resolver,
                 organizationService,
                 subjectService,
                 conversationService
@@ -169,20 +170,20 @@ class WebJobControllerTest {
     void shouldAttachStreamChunkConsumerToStreamRequestMetadata() throws Exception {
         AgentTaskService taskService = mock(AgentTaskService.class);
         AgentTaskExecutor taskExecutor = mock(AgentTaskExecutor.class);
-        IdentityService identityService = mock(IdentityService.class);
+        WebUserContextResolver resolver = mock(WebUserContextResolver.class);
         OrganizationService organizationService = mock(OrganizationService.class);
         SubjectService subjectService = mock(SubjectService.class);
         ConversationService conversationService = mock(ConversationService.class);
         AgentTaskRecord task = task("agent-task-1", AgentTaskStatus.PENDING);
         when(taskService.createTask(any(), eq("web"), eq(null))).thenReturn(task);
-        when(identityService.getOrCreateUserByWebSession("web-user-key-1"))
-                .thenReturn(new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()));
+        when(resolver.resolve(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(baseContext());
         when(subjectService.getOrCreateUserSubject(3001L, 1001L)).thenReturn(SubjectEntity.builder().id(5001L).build());
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new WebAgentController(
                 taskService,
                 taskExecutor,
-                identityService,
+                resolver,
                 organizationService,
                 subjectService,
                 conversationService
@@ -223,6 +224,15 @@ class WebJobControllerTest {
                 null,
                 null,
                 new AgentRequest("1", "3001", "导出聊天记录", AgentChannel.WEB, null, "1", Map.of("orgId", 1001L))
+        );
+    }
+
+    private WebUserContext baseContext() {
+        return new WebUserContext(
+                "web-user-key-1",
+                new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()),
+                false,
+                null
         );
     }
 }

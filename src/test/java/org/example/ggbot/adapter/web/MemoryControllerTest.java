@@ -15,8 +15,9 @@ import org.example.ggbot.persistence.entity.MemoryEntity;
 import org.example.ggbot.persistence.entity.OrganizationEntity;
 import org.example.ggbot.persistence.entity.UserEntity;
 import org.example.ggbot.service.access.AccessControlService;
+import org.example.ggbot.service.auth.WebUserContext;
+import org.example.ggbot.service.auth.WebUserContextResolver;
 import org.example.ggbot.service.dto.ResolvedWebUser;
-import org.example.ggbot.service.identity.IdentityService;
 import org.example.ggbot.service.memory.MemoryService;
 import org.example.ggbot.service.organization.OrganizationService;
 import org.junit.jupiter.api.Test;
@@ -27,12 +28,12 @@ class MemoryControllerTest {
 
     @Test
     void shouldListAccessibleMemoryInCurrentOrg() throws Exception {
-        IdentityService identityService = mock(IdentityService.class);
+        WebUserContextResolver resolver = mock(WebUserContextResolver.class);
         OrganizationService organizationService = mock(OrganizationService.class);
         MemoryService memoryService = mock(MemoryService.class);
         AccessControlService accessControlService = mock(AccessControlService.class);
-        when(identityService.getOrCreateUserByWebSession("web-user-key-1"))
-                .thenReturn(new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()));
+        when(resolver.resolve(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(baseContext());
         when(memoryService.listAccessibleMemory(3001L, 1001L)).thenReturn(List.of(
                 MemoryEntity.builder()
                         .id(9001L)
@@ -46,7 +47,7 @@ class MemoryControllerTest {
         ));
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new MemoryController(identityService, organizationService, accessControlService, memoryService)
+                new MemoryController(resolver, organizationService, accessControlService, memoryService)
         ).build();
 
         mockMvc.perform(get("/api/memory")
@@ -59,12 +60,12 @@ class MemoryControllerTest {
 
     @Test
     void shouldListSubjectMemoryAfterSubjectAccessCheck() throws Exception {
-        IdentityService identityService = mock(IdentityService.class);
+        WebUserContextResolver resolver = mock(WebUserContextResolver.class);
         OrganizationService organizationService = mock(OrganizationService.class);
         MemoryService memoryService = mock(MemoryService.class);
         AccessControlService accessControlService = mock(AccessControlService.class);
-        when(identityService.getOrCreateUserByWebSession("web-user-key-1"))
-                .thenReturn(new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()));
+        when(resolver.resolve(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(baseContext());
         when(memoryService.listSubjectMemory(1001L, 5001L)).thenReturn(List.of(
                 MemoryEntity.builder()
                         .id(9002L)
@@ -76,7 +77,7 @@ class MemoryControllerTest {
         ));
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new MemoryController(identityService, organizationService, accessControlService, memoryService)
+                new MemoryController(resolver, organizationService, accessControlService, memoryService)
         ).build();
 
         mockMvc.perform(get("/api/subjects/5001/memory")
@@ -85,5 +86,14 @@ class MemoryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].memoryId").value(9002L))
                 .andExpect(jsonPath("$.data[0].content").value("shared group memory"));
+    }
+
+    private WebUserContext baseContext() {
+        return new WebUserContext(
+                "web-user-key-1",
+                new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()),
+                false,
+                null
+        );
     }
 }

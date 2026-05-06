@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.ggbot.prompt.ClasspathPromptRepository;
 import org.springframework.stereotype.Service;
 
 /**
@@ -16,10 +17,11 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class LlmStartupProbeService {
 
-    private static final String PROBE_SYSTEM_PROMPT = "Reply with OK only.";
-    private static final String PROBE_USER_PROMPT = "OK";
+    private static final String PROBE_SYSTEM_PROMPT_NAME = "llm-startup-probe-system-prompt.txt";
+    private static final String PROBE_USER_PROMPT_NAME = "llm-startup-probe-user-prompt.txt";
 
     private final SpringAiChatService chatService;
+    private final ClasspathPromptRepository promptRepository;
     private final AtomicBoolean llmConfigured = new AtomicBoolean(false);
     private final AtomicBoolean llmReachable = new AtomicBoolean(false);
     private final AtomicReference<String> llmMessage = new AtomicReference<>("启动后尚未完成模型探测");
@@ -37,7 +39,10 @@ public class LlmStartupProbeService {
         llmMessage.set("正在探测模型连通性");
 
         try {
-            String reply = chatService.chat(PROBE_SYSTEM_PROMPT, PROBE_USER_PROMPT);
+            String reply = chatService.chat(
+                    promptRepository.load(PROBE_SYSTEM_PROMPT_NAME),
+                    promptRepository.load(PROBE_USER_PROMPT_NAME)
+            );
             llmReachable.set(reply != null && !reply.isBlank());
             if (llmReachable.get()) {
                 llmMessage.set("模型启动探测成功");

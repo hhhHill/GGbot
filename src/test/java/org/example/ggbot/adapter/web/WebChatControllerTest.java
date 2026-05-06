@@ -14,11 +14,12 @@ import org.example.ggbot.persistence.entity.ConversationEntity;
 import org.example.ggbot.persistence.entity.OrganizationEntity;
 import org.example.ggbot.persistence.entity.SubjectEntity;
 import org.example.ggbot.persistence.entity.UserEntity;
+import org.example.ggbot.service.auth.WebUserContext;
+import org.example.ggbot.service.auth.WebUserContextResolver;
 import org.example.ggbot.service.context.PersistentConversationContextService;
 import org.example.ggbot.service.conversation.ConversationService;
 import org.example.ggbot.service.dto.ConversationContext;
 import org.example.ggbot.service.dto.ResolvedWebUser;
-import org.example.ggbot.service.identity.IdentityService;
 import org.example.ggbot.service.organization.OrganizationService;
 import org.example.ggbot.service.subject.SubjectService;
 import org.junit.jupiter.api.Test;
@@ -30,7 +31,7 @@ class WebChatControllerTest {
 
     @Test
     void shouldSendWebMessageInPersonalWorkspaceWhenOrgIdMissing() throws Exception {
-        IdentityService identityService = mock(IdentityService.class);
+        WebUserContextResolver resolver = mock(WebUserContextResolver.class);
         OrganizationService organizationService = mock(OrganizationService.class);
         SubjectService subjectService = mock(SubjectService.class);
         ConversationService conversationService = mock(ConversationService.class);
@@ -42,8 +43,8 @@ class WebChatControllerTest {
         SubjectEntity subject = SubjectEntity.builder().id(5001L).build();
         ConversationEntity conversation = ConversationEntity.builder().id(7001L).build();
 
-        when(identityService.getOrCreateUserByWebSession("web-user-key-1"))
-                .thenReturn(new ResolvedWebUser(user, personalOrg));
+        when(resolver.resolve(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq("legacy-session"), org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(new WebUserContext("web-user-key-1", new ResolvedWebUser(user, personalOrg), false, null));
         when(subjectService.getOrCreateUserSubject(3001L, 1001L)).thenReturn(subject);
         when(conversationService.createConversation(1001L, 5001L, "web", "hello", 3001L)).thenReturn(conversation);
         when(contextService.buildContext(1001L, 5001L, 7001L))
@@ -52,7 +53,7 @@ class WebChatControllerTest {
                 .thenReturn("reply");
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new WebChatController(
-                identityService, organizationService, subjectService, conversationService, contextService, agentService
+                resolver, organizationService, subjectService, conversationService, contextService, agentService
         )).build();
 
         mockMvc.perform(post("/api/web/chat/send")

@@ -8,11 +8,10 @@ import lombok.RequiredArgsConstructor;
 import org.example.ggbot.adapter.web.dto.ConversationSummaryResponse;
 import org.example.ggbot.adapter.web.dto.MessageResponse;
 import org.example.ggbot.common.ApiResponse;
-import org.example.ggbot.exception.BadRequestException;
 import org.example.ggbot.service.access.AccessControlService;
 import org.example.ggbot.service.conversation.ConversationService;
-import org.example.ggbot.service.dto.ResolvedWebUser;
-import org.example.ggbot.service.identity.IdentityService;
+import org.example.ggbot.service.auth.WebUserContext;
+import org.example.ggbot.service.auth.WebUserContextResolver;
 import org.example.ggbot.service.organization.OrganizationService;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class ConversationController {
 
-    private final IdentityService identityService;
+    private final WebUserContextResolver webUserContextResolver;
     private final OrganizationService organizationService;
     private final AccessControlService accessControlService;
     private final ConversationService conversationService;
@@ -37,12 +36,13 @@ public class ConversationController {
     @GetMapping
     public ApiResponse<List<ConversationSummaryResponse>> listConversations(
             @CookieValue(value = "web_user_key", required = false) Cookie webUserKeyCookie,
+            @CookieValue(value = "web_auth_token", required = false) Cookie authCookie,
             @RequestParam Long orgId
     ) {
-        ResolvedWebUser resolvedUser = identityService.getOrCreateUserByWebSession(resolveWebUserKey(webUserKeyCookie));
-        organizationService.checkUserActiveInOrg(resolvedUser.user().getId(), orgId);
+        WebUserContext context = webUserContextResolver.resolve(authCookie, webUserKeyCookie, null, false);
+        organizationService.checkUserActiveInOrg(context.resolvedUser().user().getId(), orgId);
         List<ConversationSummaryResponse> conversations = conversationService.listAccessibleConversations(
-                        resolvedUser.user().getId(), orgId)
+                        context.resolvedUser().user().getId(), orgId)
                 .stream()
                 .map(conversation -> new ConversationSummaryResponse(
                         conversation.getId(),
@@ -60,12 +60,13 @@ public class ConversationController {
     @GetMapping("/{conversationId}/messages")
     public ApiResponse<List<MessageResponse>> listMessages(
             @CookieValue(value = "web_user_key", required = false) Cookie webUserKeyCookie,
+            @CookieValue(value = "web_auth_token", required = false) Cookie authCookie,
             @RequestParam Long orgId,
             @PathVariable Long conversationId
     ) {
-        ResolvedWebUser resolvedUser = identityService.getOrCreateUserByWebSession(resolveWebUserKey(webUserKeyCookie));
-        organizationService.checkUserActiveInOrg(resolvedUser.user().getId(), orgId);
-        accessControlService.checkCanAccessConversation(resolvedUser.user().getId(), orgId, conversationId);
+        WebUserContext context = webUserContextResolver.resolve(authCookie, webUserKeyCookie, null, false);
+        organizationService.checkUserActiveInOrg(context.resolvedUser().user().getId(), orgId);
+        accessControlService.checkCanAccessConversation(context.resolvedUser().user().getId(), orgId, conversationId);
         List<MessageResponse> messages = conversationService.listMessages(orgId, conversationId)
                 .stream()
                 .map(message -> new MessageResponse(
@@ -84,13 +85,14 @@ public class ConversationController {
     @PatchMapping("/{conversationId}/title")
     public ApiResponse<ConversationSummaryResponse> renameConversation(
             @CookieValue(value = "web_user_key", required = false) Cookie webUserKeyCookie,
+            @CookieValue(value = "web_auth_token", required = false) Cookie authCookie,
             @RequestParam Long orgId,
             @PathVariable Long conversationId,
             @Valid @RequestBody RenameConversationRequest request
     ) {
-        ResolvedWebUser resolvedUser = identityService.getOrCreateUserByWebSession(resolveWebUserKey(webUserKeyCookie));
-        organizationService.checkUserActiveInOrg(resolvedUser.user().getId(), orgId);
-        accessControlService.checkCanAccessConversation(resolvedUser.user().getId(), orgId, conversationId);
+        WebUserContext context = webUserContextResolver.resolve(authCookie, webUserKeyCookie, null, false);
+        organizationService.checkUserActiveInOrg(context.resolvedUser().user().getId(), orgId);
+        accessControlService.checkCanAccessConversation(context.resolvedUser().user().getId(), orgId, conversationId);
         var conversation = conversationService.renameConversation(orgId, conversationId, request.title());
         return ApiResponse.success(new ConversationSummaryResponse(
                 conversation.getId(),
@@ -106,20 +108,14 @@ public class ConversationController {
     @DeleteMapping("/{conversationId}")
     public ApiResponse<Boolean> deleteConversation(
             @CookieValue(value = "web_user_key", required = false) Cookie webUserKeyCookie,
+            @CookieValue(value = "web_auth_token", required = false) Cookie authCookie,
             @RequestParam Long orgId,
             @PathVariable Long conversationId
     ) {
-        ResolvedWebUser resolvedUser = identityService.getOrCreateUserByWebSession(resolveWebUserKey(webUserKeyCookie));
-        organizationService.checkUserActiveInOrg(resolvedUser.user().getId(), orgId);
-        accessControlService.checkCanAccessConversation(resolvedUser.user().getId(), orgId, conversationId);
+        WebUserContext context = webUserContextResolver.resolve(authCookie, webUserKeyCookie, null, false);
+        organizationService.checkUserActiveInOrg(context.resolvedUser().user().getId(), orgId);
+        accessControlService.checkCanAccessConversation(context.resolvedUser().user().getId(), orgId, conversationId);
         conversationService.deleteConversation(orgId, conversationId);
         return ApiResponse.success(Boolean.TRUE);
-    }
-
-    private String resolveWebUserKey(Cookie webUserKeyCookie) {
-        if (webUserKeyCookie != null && webUserKeyCookie.getValue() != null && !webUserKeyCookie.getValue().isBlank()) {
-            return webUserKeyCookie.getValue();
-        }
-        throw new BadRequestException("web_user_key cookie is required");
     }
 }

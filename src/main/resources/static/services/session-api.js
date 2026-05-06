@@ -51,6 +51,49 @@ export async function fetchWebContext() {
     return request(`/api/web/context?clientKey=${encodeURIComponent(clientKey)}`);
 }
 
+export async function fetchOrganizations() {
+    return request("/api/orgs");
+}
+
+export async function switchOrganization(orgId) {
+    return request("/api/orgs/switch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orgId })
+    });
+}
+
+export async function createFeishuBindToken(orgId) {
+    return request("/api/bind/feishu/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orgId ? { orgId } : {})
+    });
+}
+
+export async function registerLocalAccount(username, password) {
+    return request("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    });
+}
+
+export async function loginLocalAccount(username, password) {
+    return request("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+    });
+}
+
+export async function logoutLocalAccount() {
+    return request("/api/auth/logout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+    });
+}
+
 export async function fetchSessions(orgId) {
     const conversations = await request(`/api/conversations?orgId=${encodeURIComponent(orgId)}`);
     return conversations.map(mapConversationSummary);

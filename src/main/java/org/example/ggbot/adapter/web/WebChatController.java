@@ -8,14 +8,13 @@ import org.example.ggbot.adapter.web.dto.WebChatSendResponse;
 import org.example.ggbot.agent.AgentService;
 import org.example.ggbot.common.ApiResponse;
 import org.example.ggbot.enums.MessageRole;
-import org.example.ggbot.exception.BadRequestException;
 import org.example.ggbot.persistence.entity.ConversationEntity;
 import org.example.ggbot.persistence.entity.SubjectEntity;
+import org.example.ggbot.service.auth.WebUserContext;
+import org.example.ggbot.service.auth.WebUserContextResolver;
 import org.example.ggbot.service.context.PersistentConversationContextService;
 import org.example.ggbot.service.conversation.ConversationService;
 import org.example.ggbot.service.dto.ConversationContext;
-import org.example.ggbot.service.dto.ResolvedWebUser;
-import org.example.ggbot.service.identity.IdentityService;
 import org.example.ggbot.service.organization.OrganizationService;
 import org.example.ggbot.service.subject.SubjectService;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -29,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class WebChatController {
 
-    private final IdentityService identityService;
+    private final WebUserContextResolver webUserContextResolver;
     private final OrganizationService organizationService;
     private final SubjectService subjectService;
     private final ConversationService conversationService;
@@ -39,11 +38,12 @@ public class WebChatController {
     @PostMapping("/send")
     public ApiResponse<WebChatSendResponse> send(
             @CookieValue(value = "web_user_key", required = false) Cookie webUserKeyCookie,
+            @CookieValue(value = "web_auth_token", required = false) Cookie authCookie,
             @RequestBody WebChatSendRequest request
     ) {
-        ResolvedWebUser resolvedUser = identityService.getOrCreateUserByWebSession(resolveWebUserKey(webUserKeyCookie, request));
-        Long userId = resolvedUser.user().getId();
-        Long currentOrgId = resolveOrgId(resolvedUser, request.getOrgId());
+        WebUserContext webUserContext = webUserContextResolver.resolve(authCookie, webUserKeyCookie, request.getSessionId(), false);
+        Long userId = webUserContext.resolvedUser().user().getId();
+        Long currentOrgId = resolveOrgId(webUserContext, request.getOrgId());
         SubjectEntity subject = subjectService.getOrCreateUserSubject(userId, currentOrgId);
         ConversationEntity conversation = resolveConversation(currentOrgId, subject.getId(), userId, request);
 
@@ -78,21 +78,11 @@ public class WebChatController {
         ));
     }
 
-    private String resolveWebUserKey(Cookie webUserKeyCookie, WebChatSendRequest request) {
-        if (webUserKeyCookie != null && webUserKeyCookie.getValue() != null && !webUserKeyCookie.getValue().isBlank()) {
-            return webUserKeyCookie.getValue();
-        }
-        if (request.getSessionId() != null && !request.getSessionId().isBlank()) {
-            return request.getSessionId();
-        }
-        throw new BadRequestException("web_user_key cookie or sessionId is required");
-    }
-
-    private Long resolveOrgId(ResolvedWebUser resolvedUser, Long requestedOrgId) {
+    private Long resolveOrgId(WebUserContext context, Long requestedOrgId) {
         if (requestedOrgId == null) {
-            return resolvedUser.personalOrg().getId();
+            return context.resolvedUser().personalOrg().getId();
         }
-        organizationService.checkUserActiveInOrg(resolvedUser.user().getId(), requestedOrgId);
+        organizationService.checkUserActiveInOrg(context.resolvedUser().user().getId(), requestedOrgId);
         return requestedOrgId;
     }
 

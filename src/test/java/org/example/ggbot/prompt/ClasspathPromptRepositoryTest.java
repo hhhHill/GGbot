@@ -19,6 +19,21 @@ class ClasspathPromptRepositoryTest {
     }
 
     @Test
+    void shouldRenderTemplateWithNamedVariables() {
+        ClasspathPromptRepository repository = new ClasspathPromptRepository();
+
+        String prompt = repository.load("test-template.txt", java.util.Map.of(
+                "name", "GGbot",
+                "topic", "prompt centralization"
+        ));
+
+        assertThat(prompt).isEqualTo("""
+                Hello GGbot!
+                Topic: prompt centralization
+                """.trim());
+    }
+
+    @Test
     void shouldFailFastWhenPromptResourceDoesNotExist() {
         ClasspathPromptRepository repository = new ClasspathPromptRepository();
 

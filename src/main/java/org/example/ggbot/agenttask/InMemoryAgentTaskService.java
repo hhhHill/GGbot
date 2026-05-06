@@ -1,6 +1,7 @@
 package org.example.ggbot.agenttask;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,16 @@ public class InMemoryAgentTaskService implements AgentTaskService {
         return created.getTaskId().equals(indexedTaskId)
                 ? new AgentTaskCreationResult(created, true)
                 : new AgentTaskCreationResult(findByTaskId(indexedTaskId), false);
+    }
+
+    @Override
+    public Optional<AgentTaskRecord> findActiveTask(String source, String conversationId) {
+        return tasks.values().stream()
+                .filter(task -> task.getSource().equalsIgnoreCase(source))
+                .filter(task -> task.getSessionId().equals(conversationId))
+                .filter(task -> isActive(task.getStatus()))
+                .sorted((left, right) -> right.getCreatedAt().compareTo(left.getCreatedAt()))
+                .findFirst();
     }
 
     @Override
@@ -139,5 +150,11 @@ public class InMemoryAgentTaskService implements AgentTaskService {
             throw new IllegalArgumentException("Agent task not found: " + taskId);
         }
         return updated;
+    }
+
+    private boolean isActive(AgentTaskStatus status) {
+        return status == AgentTaskStatus.PENDING
+                || status == AgentTaskStatus.RUNNING
+                || status == AgentTaskStatus.RETRYING;
     }
 }

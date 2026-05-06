@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import org.example.ggbot.agent.AgentChannel;
 import org.example.ggbot.agent.AgentContext;
+import org.example.ggbot.prompt.ClasspathPromptRepository;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 
@@ -18,7 +19,7 @@ class ContextAwareChatServiceTest {
     @Test
     void shouldBuildPromptAndWriteBackMemoryAfterChat() {
         ReliableChatService delegate = mock(ReliableChatService.class);
-        MemoryManager memoryManager = new MemoryManager();
+        MemoryManager memoryManager = new MemoryManager(new ClasspathPromptRepository());
         ContextAwareChatService service = new ContextAwareChatService(delegate, memoryManager);
         AgentContext context = context(List.of(
                 "USER: 你知道杨艺不？",
@@ -50,7 +51,7 @@ class ContextAwareChatServiceTest {
     @Test
     void shouldBuildPromptAndWriteBackMemoryAfterStreamCompletes() {
         ReliableChatService delegate = mock(ReliableChatService.class);
-        MemoryManager memoryManager = new MemoryManager();
+        MemoryManager memoryManager = new MemoryManager(new ClasspathPromptRepository());
         ContextAwareChatService service = new ContextAwareChatService(delegate, memoryManager);
         AgentContext context = context(List.of("USER: 你好", "ASSISTANT: 你好"));
         when(delegate.stream(anyString(), anyString())).thenReturn(Flux.just("她", "很好"));

@@ -10,8 +10,9 @@ import jakarta.servlet.http.Cookie;
 import org.example.ggbot.persistence.entity.OrganizationEntity;
 import org.example.ggbot.persistence.entity.UserEntity;
 import org.example.ggbot.service.binding.AccountBindingService;
+import org.example.ggbot.service.auth.WebUserContext;
+import org.example.ggbot.service.auth.WebUserContextResolver;
 import org.example.ggbot.service.dto.ResolvedWebUser;
-import org.example.ggbot.service.identity.IdentityService;
 import org.example.ggbot.service.organization.OrganizationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -22,15 +23,17 @@ class AccountBindingControllerTest {
 
     @Test
     void shouldCreateFeishuBindTokenForCurrentUserAndOrg() throws Exception {
-        IdentityService identityService = mock(IdentityService.class);
+        WebUserContextResolver resolver = mock(WebUserContextResolver.class);
         AccountBindingService accountBindingService = mock(AccountBindingService.class);
         OrganizationService organizationService = mock(OrganizationService.class);
-        when(identityService.getOrCreateUserByWebSession("web-user-key-1"))
-                .thenReturn(new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()));
+        when(resolver.resolve(org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.isNull(), org.mockito.ArgumentMatchers.eq(false)))
+                .thenReturn(new WebUserContext("web-user-key-1",
+                        new ResolvedWebUser(UserEntity.builder().id(3001L).build(), OrganizationEntity.builder().id(1001L).build()),
+                        true, "alice"));
         when(accountBindingService.createBindToken(3001L, 1001L)).thenReturn("bind-token-1");
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new AccountBindingController(identityService, accountBindingService, organizationService)
+                new AccountBindingController(resolver, accountBindingService, organizationService)
         ).build();
 
         mockMvc.perform(post("/api/bind/feishu/token")

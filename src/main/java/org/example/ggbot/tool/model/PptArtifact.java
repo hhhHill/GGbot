@@ -10,4 +10,5 @@ public class PptArtifact {
 
     private final String title;
     private final List<Slide> slides;
+    private final String filePath;
 }

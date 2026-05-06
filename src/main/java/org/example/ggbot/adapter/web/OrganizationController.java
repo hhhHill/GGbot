@@ -7,8 +7,8 @@ import org.example.ggbot.adapter.web.dto.OrganizationResponse;
 import org.example.ggbot.adapter.web.dto.SwitchOrganizationRequest;
 import org.example.ggbot.common.ApiResponse;
 import org.example.ggbot.exception.BadRequestException;
-import org.example.ggbot.service.dto.ResolvedWebUser;
-import org.example.ggbot.service.identity.IdentityService;
+import org.example.ggbot.service.auth.WebUserContext;
+import org.example.ggbot.service.auth.WebUserContextResolver;
 import org.example.ggbot.service.organization.OrganizationService;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,15 +22,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class OrganizationController {
 
-    private final IdentityService identityService;
+    private final WebUserContextResolver webUserContextResolver;
     private final OrganizationService organizationService;
 
     @GetMapping
     public ApiResponse<List<OrganizationResponse>> listOrganizations(
-            @CookieValue(value = "web_user_key", required = false) Cookie webUserKeyCookie
+            @CookieValue(value = "web_user_key", required = false) Cookie webUserKeyCookie,
+            @CookieValue(value = "web_auth_token", required = false) Cookie authCookie
     ) {
-        ResolvedWebUser resolvedUser = identityService.getOrCreateUserByWebSession(resolveWebUserKey(webUserKeyCookie));
-        List<OrganizationResponse> organizations = organizationService.listActiveOrganizations(resolvedUser.user().getId())
+        WebUserContext context = webUserContextResolver.resolve(authCookie, webUserKeyCookie, null, false);
+        List<OrganizationResponse> organizations = organizationService.listActiveOrganizations(context.resolvedUser().user().getId())
                 .stream()
                 .map(org -> new OrganizationResponse(
                         org.getId(),
@@ -47,20 +48,14 @@ public class OrganizationController {
     @PostMapping("/switch")
     public ApiResponse<String> switchOrganization(
             @CookieValue(value = "web_user_key", required = false) Cookie webUserKeyCookie,
+            @CookieValue(value = "web_auth_token", required = false) Cookie authCookie,
             @RequestBody SwitchOrganizationRequest request
     ) {
-        ResolvedWebUser resolvedUser = identityService.getOrCreateUserByWebSession(resolveWebUserKey(webUserKeyCookie));
+        WebUserContext context = webUserContextResolver.resolve(authCookie, webUserKeyCookie, null, false);
         if (request.getOrgId() == null) {
             throw new BadRequestException("orgId is required");
         }
-        organizationService.checkUserActiveInOrg(resolvedUser.user().getId(), request.getOrgId());
+        organizationService.checkUserActiveInOrg(context.resolvedUser().user().getId(), request.getOrgId());
         return ApiResponse.success("switched");
-    }
-
-    private String resolveWebUserKey(Cookie webUserKeyCookie) {
-        if (webUserKeyCookie != null && webUserKeyCookie.getValue() != null && !webUserKeyCookie.getValue().isBlank()) {
-            return webUserKeyCookie.getValue();
-        }
-        throw new BadRequestException("web_user_key cookie is required");
     }
 }
