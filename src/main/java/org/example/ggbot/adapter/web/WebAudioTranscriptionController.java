@@ -1,6 +1,10 @@
 package org.example.ggbot.adapter.web;
 
-import lombok.RequiredArgsConstructor;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 import org.example.ggbot.adapter.web.dto.WebAudioTranscriptionResponse;
 import org.example.ggbot.asr.AsrService;
 import org.example.ggbot.asr.AudioTranscriptionRequest;
@@ -16,13 +20,18 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/web/audio")
-@RequiredArgsConstructor
 public class WebAudioTranscriptionController {
 
     private final AudioUploadValidator audioUploadValidator;
     private final AsrService asrService;
+
+    public WebAudioTranscriptionController(AudioUploadValidator audioUploadValidator, AsrService asrService) {
+        this.audioUploadValidator = audioUploadValidator;
+        this.asrService = asrService;
+    }
 
     @PostMapping(value = "/transcriptions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<WebAudioTranscriptionResponse> transcribe(
@@ -35,7 +44,9 @@ public class WebAudioTranscriptionController {
         } catch (IllegalArgumentException exception) {
             throw new BadRequestException(exception.getMessage());
         }
-        AudioTranscriptionResult result = asrService.transcribe(new AudioTranscriptionRequest(file, language));
+
+        AudioTranscriptionResult result = asrService.transcribe(
+                new AudioTranscriptionRequest(file, language));
         return ApiResponse.success(WebAudioTranscriptionResponse.from(result));
     }
 }

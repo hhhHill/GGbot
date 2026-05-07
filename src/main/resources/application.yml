@@ -46,15 +46,17 @@ app:
     message-path: /open-apis/im/v1/messages
 
 asr:
-  enabled: ${ASR_ENABLED:false}
-  provider: ${ASR_PROVIDER:openai-compatible}
-  base-url: ${ASR_BASE_URL:}
-  api-key: ${ASR_API_KEY:}
-  model: ${ASR_MODEL:whisper-1}
+  enabled: ${ASR_ENABLED:true}
+  provider: ${ASR_PROVIDER:dashscope}
+  base-url: ${ASR_BASE_URL:https://dashscope.aliyuncs.com}
+  api-key: ${ASR_API_KEY:sk-681b6c60293044e5be8e9ce9bb559463}
+  model: ${ASR_MODEL:paraformer-realtime-v2}
   timeout: ${ASR_TIMEOUT:20s}
+  min-file-size: ${ASR_MIN_FILE_SIZE:1KB}
   max-file-size: ${ASR_MAX_FILE_SIZE:5MB}
   allowed-content-types:
     - audio/webm
     - audio/mp4
     - audio/mpeg
     - audio/wav
+    - audio/ogg

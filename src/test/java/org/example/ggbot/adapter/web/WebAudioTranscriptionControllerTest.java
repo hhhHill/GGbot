@@ -32,11 +32,7 @@ class WebAudioTranscriptionControllerTest {
         );
 
         when(asrService.transcribe(any())).thenReturn(new AudioTranscriptionResult(
-                "帮我整理这个需求",
-                "openai-compatible",
-                "zh",
-                1820L,
-                "asr_123"
+                "帮我整理这个需求", "dashscope", "zh", 1820L, "asr_123"
         ));
 
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
@@ -50,7 +46,7 @@ class WebAudioTranscriptionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.text").value("帮我整理这个需求"))
-                .andExpect(jsonPath("$.data.provider").value("openai-compatible"));
+                .andExpect(jsonPath("$.data.provider").value("dashscope"));
     }
 
     @Test

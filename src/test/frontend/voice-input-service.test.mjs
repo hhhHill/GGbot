@@ -42,7 +42,7 @@ const voiceModule = vm.runInNewContext(
 );
 const { transcribeAudio } = voiceModule;
 
-const result = await transcribeAudio(new Blob(["voice"], { type: "audio/webm" }), { mode: "fill", language: "zh" });
+const result = await transcribeAudio(new Blob(["x".repeat(2048)], { type: "audio/webm" }), { mode: "fill", language: "zh" });
 
 assert.equal(context.calls[0].url, "/api/web/audio/transcriptions");
 assert.equal(context.calls[0].options.method, "POST");
@@ -50,6 +50,13 @@ assert.ok(context.calls[0].options.body instanceof FormData);
 assert.equal(result.text, "整理一下这个需求");
 assert.equal(result.provider, "openai-compatible");
 console.log("voice-input upload mapping test passed");
+
+await assert.rejects(
+    () => transcribeAudio(new Blob(["x".repeat(10)], { type: "audio/webm" }), { mode: "fill", language: "zh" }),
+    /录音时间过短/
+);
+assert.equal(context.calls.length, 1);
+console.log("voice-input short recording guard test passed");
 
 const supportContext = {
     navigator: {},

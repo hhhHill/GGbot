@@ -3,7 +3,8 @@ package org.example.ggbot.asr;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ByteArrayResource;
+
+
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
@@ -29,7 +30,7 @@ public class ProviderAsrService implements AsrService {
         long startedAt = System.currentTimeMillis();
         try {
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("file", new NamedByteArrayResource(request.file().getBytes(), request.file().getOriginalFilename()));
+            body.add("file", new AsrByteArrayResource(request.file().getBytes(), request.file().getOriginalFilename()));
             body.add("model", properties.getModel());
             body.add("language", request.language());
 
@@ -99,18 +100,4 @@ public class ProviderAsrService implements AsrService {
     ) {
     }
 
-    private static final class NamedByteArrayResource extends ByteArrayResource {
-
-        private final String filename;
-
-        private NamedByteArrayResource(byte[] byteArray, String filename) {
-            super(byteArray);
-            this.filename = filename == null || filename.isBlank() ? "voice.webm" : filename;
-        }
-
-        @Override
-        public String getFilename() {
-            return filename;
-        }
-    }
 }

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw test *)",
+      "PowerShell(mvn *)",
+      "WebSearch",
+      "WebFetch(domain:help.aliyun.com)",
+      "WebFetch(domain:webcache.googleusercontent.com)",
+      "PowerShell(ffmpeg *)"
+    ]
+  }
+}
